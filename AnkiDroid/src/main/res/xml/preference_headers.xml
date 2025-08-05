@@ -115,6 +115,15 @@
         app:summaryEntries="@array/advanced_summary_entries">
     </com.ichi2.preferences.HeaderPreference>
 
+    <!-- OpenAI Preferences -->
+    <com.ichi2.preferences.HeaderPreference
+        android:fragment="com.ichi2.anki.preferences.OpenAISettingsFragment"
+        android:key="@string/pref_openai_screen_key"
+        android:title="@string/pref_cat_openai"
+        android:icon="@drawable/ic_lightbulb_stars"
+        app:summaryEntries="@array/openai_summary_entries">
+    </com.ichi2.preferences.HeaderPreference>
+
     <com.ichi2.preferences.HeaderPreference
         android:fragment="com.ichi2.anki.preferences.ReviewerOptionsFragment"
         android:title="@string/new_study_screen"

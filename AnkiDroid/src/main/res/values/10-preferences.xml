@@ -45,6 +45,7 @@
     <string name="pref_cat_workarounds" maxLength="41">Workarounds</string>
     <string name="pref_cat_plugins" maxLength="41">Plugins</string>
     <string name="pref_cat_editing" maxLength="41">Editing</string>
+    <string name="pref_cat_openai" maxLength="41">AI Integration</string>
 
     <!-- preferences.xml entries-->
     <string name="whiteboard_stroke_width" maxLength="41">Stroke width</string>
@@ -259,6 +260,18 @@
     <string name="license_description"><![CDATA[AnkiDroid is released under the <a href=\"%1$s\">GPL-3.0</a> and <a href=\"%2$s\">AGPL-3.0</a> licenses, with the source code available <a href=\"%3$s\">on GitHub</a>]]></string>
     <string name="other_licenses"><![CDATA[AnkiDroid also uses third-party libraries and icons, which are licensed under various open source <a href=\"%1$s\">licenses</a>]]></string>
     <string name="donate_description"><![CDATA[You can support AnkiDroid\'s development by <a href=\"%1$s\">donating</a>. Any amount is deeply appreciated.]]></string>
+
+    <!-- OpenAI Settings -->
+    <string name="pref_openai_screen_key">openai_screen</string>
+    <string name="openai_api_key_title" maxLength="41">OpenAI API Key</string>
+    <string name="openai_api_key_summary">Enter your OpenAI API key for AI features</string>
+    <string name="pref_openai_api_key">openai_api_key</string>
+    <string name="openai_organization_title" maxLength="41">OpenAI Organization ID</string>
+    <string name="openai_organization_summary">Optional: Your OpenAI organization ID</string>
+    <string name="pref_openai_organization_key">openai_organization</string>
+    <string name="openai_project_title" maxLength="41">OpenAI Project ID</string>
+    <string name="openai_project_summary">Optional: Your OpenAI project ID</string>
+    <string name="pref_openai_project_key">openai_project</string>
 
     <!-- Controls -->
     <string name="binding_add_gesture">Add gesture</string>
