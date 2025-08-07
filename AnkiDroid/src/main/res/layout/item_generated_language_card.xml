@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Selection checkbox and card number header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <CheckBox
+                android:id="@+id/checkbox_select"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Language Learning Card"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginStart="8dp" />
+
+            <CheckBox
+                android:id="@+id/checkbox_reversed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reversed"
+                android:checked="false" />
+
+        </LinearLayout>
+
+        <!-- Table layout for language learning fields -->
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:stretchColumns="1">
+
+            <!-- Word/Phrase row -->
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.3"
+                    android:text="Word:"
+                    android:textStyle="bold"
+                    android:gravity="start|center_vertical"
+                    android:minHeight="48dp"
+                    android:paddingEnd="8dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.7"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:hint="Word or phrase">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_word"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:maxLines="2" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </TableRow>
+
+            <!-- Meaning row -->
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.3"
+                    android:text="Meaning:"
+                    android:textStyle="bold"
+                    android:gravity="start|center_vertical"
+                    android:minHeight="48dp"
+                    android:paddingEnd="8dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.7"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:hint="German translation">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_meaning"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:maxLines="3" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </TableRow>
+
+            <!-- Pronunciation row -->
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.3"
+                    android:text="Pronunciation:"
+                    android:textStyle="bold"
+                    android:gravity="start|center_vertical"
+                    android:minHeight="48dp"
+                    android:paddingEnd="8dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.7"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:hint="IPA notation">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_pronunciation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:maxLines="2"
+                        android:fontFamily="monospace" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </TableRow>
+
+            <!-- Mnemonic row -->
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.3"
+                    android:text="Mnemonic:"
+                    android:textStyle="bold"
+                    android:gravity="start|center_vertical"
+                    android:minHeight="48dp"
+                    android:paddingEnd="8dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.7"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:hint="Memory aid (optional)">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_mnemonic"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine"
+                        android:maxLines="4"
+                        android:minLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </TableRow>
+
+        </TableLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

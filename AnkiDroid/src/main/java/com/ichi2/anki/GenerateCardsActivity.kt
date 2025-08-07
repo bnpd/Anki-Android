@@ -172,11 +172,11 @@ class GenerateCardsActivity :
         showProgress(true)
         btnGenerate.isEnabled = false
 
-        GptUtils.generateMultipleFlashcards(
+        GptUtils.generateMultipleLanguageCards(
             topic = topic,
             count = selectedCardCount,
-            onSuccess = { flashcards ->
-                handleGenerationSuccess(flashcards)
+            onSuccess = { languageCards ->
+                handleGenerationSuccess(languageCards)
             },
             onError = { error ->
                 handleGenerationError(error)
@@ -184,13 +184,11 @@ class GenerateCardsActivity :
         )
     }
 
-    private fun handleGenerationSuccess(flashcards: List<Pair<String, String>>) {
-        Timber.d("Generated ${flashcards.size} flashcards successfully")
+    private fun handleGenerationSuccess(languageCards: List<GeneratedCard>) {
+        Timber.d("Generated ${languageCards.size} language cards successfully")
 
         generatedCards.clear()
-        flashcards.forEach { (front, back) ->
-            generatedCards.add(GeneratedCard(front, back, isSelected = true))
-        }
+        generatedCards.addAll(languageCards)
 
         cardsAdapter.notifyDataSetChanged()
 
@@ -198,8 +196,6 @@ class GenerateCardsActivity :
         previewSection.visibility = View.VISIBLE
         updateApproveButtonState()
         btnGenerate.isEnabled = true
-
-        Toast.makeText(this, "Generated ${flashcards.size} cards successfully!", Toast.LENGTH_SHORT).show()
     }
 
     private fun handleGenerationError(error: String) {
@@ -273,16 +269,6 @@ class GenerateCardsActivity :
                         CollectionManager.withCol {
                             val noteTypes = notetypes.all()
 
-                            // Find Langki Language note types
-                            val langkiNoteType = noteTypes.find { it.name == "Langki Language" }
-                            val langkiReversedNoteType = noteTypes.find { it.name == "Langki Language REVERSED" }
-
-                            // Fallback to Basic note type if Langki types don't exist
-                            val fallbackNoteType =
-                                noteTypes.find { it.name == "Basic" }
-                                    ?: noteTypes.firstOrNull()
-                                    ?: throw IllegalStateException("No note types available")
-
                             // Get current deck ID
                             val currentDeckId = decks.selected()
 
@@ -292,26 +278,71 @@ class GenerateCardsActivity :
                             // Create and add notes for each selected card
                             selectedCards.forEach { generatedCard ->
                                 try {
-                                    // Choose note type based on reversed state
                                     val noteType =
                                         when {
-                                            generatedCard.isReversed && langkiReversedNoteType != null -> langkiReversedNoteType
-                                            !generatedCard.isReversed && langkiNoteType != null -> langkiNoteType
-                                            else -> fallbackNoteType
+                                            generatedCard.isReversed -> {
+                                                noteTypes.find { it.name == "Langki Language REVERSED" }
+                                                    ?: throw IllegalStateException("Reversed note type not available")
+                                            }
+                                            else -> {
+                                                noteTypes.find { it.name == "Langki Language" }
+                                                    ?: throw IllegalStateException("Note type not available")
+                                            }
                                         }
 
                                     // Create a new note using the selected note type
                                     val note = newNote(noteType)
 
-                                    // Set the fields (assuming Front and Back fields exist)
-                                    note.setItem("Front", generatedCard.front)
-                                    note.setItem("Back", generatedCard.back)
+                                    // Set the fields based on available fields in the note type
+                                    val fields = noteType.fieldsNames
+
+                                    // Try to map to specific language learning fields if they exist
+                                    when {
+                                        fields.contains("Word") && fields.contains("Meaning") -> {
+                                            note.setItem("Word", generatedCard.word)
+                                            note.setItem("Meaning", generatedCard.meaning)
+                                            if (fields.contains("Pronunciation")) {
+                                                note.setItem("Pronunciation", generatedCard.pronunciation)
+                                            }
+                                            if (fields.contains("Mnemonic") && generatedCard.mnemonic.isNotEmpty()) {
+                                                note.setItem("Mnemonic", generatedCard.mnemonic)
+                                            }
+                                        }
+                                        fields.contains("Front") && fields.contains("Back") -> {
+                                            // Fallback to basic Front/Back format
+                                            note.setItem("Front", generatedCard.word)
+                                            val backContent =
+                                                buildString {
+                                                    append(generatedCard.meaning)
+                                                    append("\n\nPronunciation: ${generatedCard.pronunciation}")
+                                                    if (generatedCard.mnemonic.isNotEmpty()) {
+                                                        append("\nMnemonic: ${generatedCard.mnemonic}")
+                                                    }
+                                                }
+                                            note.setItem("Back", backContent)
+                                        }
+                                        else -> {
+                                            // Use first two fields as fallback
+                                            if (fields.isNotEmpty()) note.setItem(fields[0], generatedCard.word)
+                                            if (fields.size > 1) {
+                                                val backContent =
+                                                    buildString {
+                                                        append(generatedCard.meaning)
+                                                        append("\n${generatedCard.pronunciation}")
+                                                        if (generatedCard.mnemonic.isNotEmpty()) {
+                                                            append("\n${generatedCard.mnemonic}")
+                                                        }
+                                                    }
+                                                note.setItem(fields[1], backContent)
+                                            }
+                                        }
+                                    }
 
                                     // Add the note to the current deck
                                     addNote(note, currentDeckId)
                                     successCount++
                                 } catch (e: Exception) {
-                                    Timber.e(e, "Failed to add note: ${generatedCard.front}")
+                                    Timber.e(e, "Failed to add note: ${generatedCard.word}")
                                     errorCount++
                                 }
                             }

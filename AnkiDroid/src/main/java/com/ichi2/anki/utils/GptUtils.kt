@@ -1,5 +1,6 @@
 package com.ichi2.anki.utils
 
+import com.ichi2.anki.model.GeneratedCard
 import com.ichi2.anki.services.GptService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -145,7 +146,47 @@ object GptUtils {
     }
 
     /**
-     * Generate multiple flashcards for a topic
+     * Generate multiple language learning flashcards for a topic
+     * Uses OpenAI credentials from app preferences
+     *
+     * @param topic The topic for language learning flashcards
+     * @param count Number of flashcards to generate
+     * @param onSuccess Callback with list of GeneratedCard objects
+     * @param onError Callback when there's an error
+     */
+    fun generateMultipleLanguageCards(
+        topic: String,
+        count: Int,
+        onSuccess: (List<GeneratedCard>) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        val prompt =
+            """
+            Create $count language learning flashcards for words/phrases related to: "$topic"
+            
+            Please respond with each flashcard in the following format:
+            CARD 1:
+            WORD: [Thai word or phrase (in Thai script)]
+            MEANING: [German translation]
+            PRONUNCIATION: [precise IPA transcription of WORD]
+            MNEMONIC: [mnemonic device or usage note, if usage is unintuitive]
+            
+            CARD 2:
+            WORD: ...
+            And so on... Make them useful for language learning with accurate translations and pronunciations.
+            """.trimIndent()
+
+        askGpt(
+            prompt = prompt,
+            onSuccess = { response ->
+                parseLanguageCardsResponse(response, onSuccess, onError)
+            },
+            onError = onError,
+        )
+    }
+
+    /**
+     * Generate multiple flashcards for a topic (legacy method for backward compatibility)
      * Uses OpenAI credentials from app preferences
      *
      * @param topic The topic for flashcards
@@ -159,26 +200,16 @@ object GptUtils {
         onSuccess: (List<Pair<String, String>>) -> Unit,
         onError: (String) -> Unit,
     ) {
-        val prompt =
-            """
-            Create $count flashcards for the topic: "$topic"
-            
-            Please respond with each flashcard in the following format:
-            CARD 1:
-            FRONT: [question or term]
-            BACK: [answer or definition]
-            
-            CARD 2:
-            FRONT: [question or term]
-            BACK: [answer or definition]
-            
-            And so on... Make them educational and varied.
-            """.trimIndent()
-
-        askGpt(
-            prompt = prompt,
-            onSuccess = { response ->
-                parseMultipleFlashcardsResponse(response, onSuccess, onError)
+        // Convert to language cards and then back to pairs for compatibility
+        generateMultipleLanguageCards(
+            topic = topic,
+            count = count,
+            onSuccess = { cards ->
+                val pairs =
+                    cards.map { card ->
+                        Pair(card.word, "${card.meaning}\n${card.pronunciation}")
+                    }
+                onSuccess(pairs)
             },
             onError = onError,
         )
@@ -252,6 +283,78 @@ object GptUtils {
             }
         } catch (e: Exception) {
             Timber.e(e, "Error parsing multiple flashcards response")
+            onError("Error parsing GPT response: ${e.message}")
+        }
+    }
+
+    private fun parseLanguageCardsResponse(
+        response: String,
+        onSuccess: (List<GeneratedCard>) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        try {
+            val cards = mutableListOf<GeneratedCard>()
+            val lines = response.lines().map { it.trim() }
+
+            var currentWord = ""
+            var currentMeaning = ""
+            var currentPronunciation = ""
+            var currentMnemonic = ""
+
+            for (line in lines) {
+                when {
+                    line.startsWith("WORD:", ignoreCase = true) -> {
+                        currentWord = line.substring(5).trim()
+                    }
+                    line.startsWith("MEANING:", ignoreCase = true) -> {
+                        currentMeaning = line.substring(8).trim()
+                    }
+                    line.startsWith("PRONUNCIATION:", ignoreCase = true) -> {
+                        currentPronunciation = line.substring(14).trim()
+                    }
+                    line.startsWith("MNEMONIC:", ignoreCase = true) -> {
+                        currentMnemonic = line.substring(9).trim()
+
+                        // When we hit mnemonic, we should have all fields for a complete card
+                        if (currentWord.isNotEmpty() && currentMeaning.isNotEmpty() && currentPronunciation.isNotEmpty()) {
+                            cards.add(
+                                GeneratedCard(
+                                    word = currentWord,
+                                    meaning = currentMeaning,
+                                    pronunciation = currentPronunciation,
+                                    mnemonic = currentMnemonic,
+                                ),
+                            )
+
+                            // Reset for next card
+                            currentWord = ""
+                            currentMeaning = ""
+                            currentPronunciation = ""
+                            currentMnemonic = ""
+                        }
+                    }
+                }
+            }
+
+            // Handle case where last card doesn't have a mnemonic
+            if (currentWord.isNotEmpty() && currentMeaning.isNotEmpty() && currentPronunciation.isNotEmpty()) {
+                cards.add(
+                    GeneratedCard(
+                        word = currentWord,
+                        meaning = currentMeaning,
+                        pronunciation = currentPronunciation,
+                        mnemonic = currentMnemonic,
+                    ),
+                )
+            }
+
+            if (cards.isNotEmpty()) {
+                onSuccess(cards)
+            } else {
+                onError("Could not parse any language cards from GPT response")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error parsing language cards response")
             onError("Error parsing GPT response: ${e.message}")
         }
     }

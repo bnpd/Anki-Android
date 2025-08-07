@@ -17,11 +17,13 @@
 package com.ichi2.anki.model
 
 /**
- * Data class representing a generated flashcard that can be edited and selected
+ * Data class representing a generated language learning flashcard that can be edited and selected
  */
 data class GeneratedCard(
-    var front: String,
-    var back: String,
+    var word: String,
+    var meaning: String,
+    var pronunciation: String,
+    var mnemonic: String = "",
     var isSelected: Boolean = true,
     var isReversed: Boolean = false,
 )

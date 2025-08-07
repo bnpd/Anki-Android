@@ -27,7 +27,7 @@ import com.ichi2.anki.R
 import com.ichi2.anki.model.GeneratedCard
 
 /**
- * Adapter for displaying generated flashcards in a RecyclerView
+ * Adapter for displaying generated language learning flashcards in a RecyclerView
  * Allows users to edit card content and select/deselect cards for approval
  */
 class GeneratedCardsAdapter(
@@ -38,9 +38,11 @@ class GeneratedCardsAdapter(
         itemView: View,
     ) : RecyclerView.ViewHolder(itemView) {
         val checkboxSelect: CheckBox = itemView.findViewById(R.id.checkbox_select)
-        val editFront: TextInputEditText = itemView.findViewById(R.id.edit_front)
-        val editBack: TextInputEditText = itemView.findViewById(R.id.edit_back)
         val checkboxReversed: CheckBox = itemView.findViewById(R.id.checkbox_reversed)
+        val editWord: TextInputEditText = itemView.findViewById(R.id.edit_word)
+        val editMeaning: TextInputEditText = itemView.findViewById(R.id.edit_meaning)
+        val editPronunciation: TextInputEditText = itemView.findViewById(R.id.edit_pronunciation)
+        val editMnemonic: TextInputEditText = itemView.findViewById(R.id.edit_mnemonic)
     }
 
     override fun onCreateViewHolder(
@@ -50,7 +52,7 @@ class GeneratedCardsAdapter(
         val view =
             LayoutInflater
                 .from(parent.context)
-                .inflate(R.layout.item_generated_card, parent, false)
+                .inflate(R.layout.item_generated_language_card, parent, false)
         return CardViewHolder(view)
     }
 
@@ -62,15 +64,19 @@ class GeneratedCardsAdapter(
 
         // Set initial values
         holder.checkboxSelect.isChecked = card.isSelected
-        holder.editFront.setText(card.front)
-        holder.editBack.setText(card.back)
         holder.checkboxReversed.isChecked = card.isReversed
+        holder.editWord.setText(card.word)
+        holder.editMeaning.setText(card.meaning)
+        holder.editPronunciation.setText(card.pronunciation)
+        holder.editMnemonic.setText(card.mnemonic)
 
         // Remove previous listeners to avoid conflicts
         holder.checkboxSelect.setOnCheckedChangeListener(null)
         holder.checkboxReversed.setOnCheckedChangeListener(null)
-        holder.editFront.clearTextChangedListeners()
-        holder.editBack.clearTextChangedListeners()
+        holder.editWord.clearTextChangedListeners()
+        holder.editMeaning.clearTextChangedListeners()
+        holder.editPronunciation.clearTextChangedListeners()
+        holder.editMnemonic.clearTextChangedListeners()
 
         // Set up checkbox listeners
         holder.checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
@@ -83,12 +89,20 @@ class GeneratedCardsAdapter(
         }
 
         // Set up text change listeners
-        holder.editFront.addTextChangedListener { text ->
-            card.front = text?.toString() ?: ""
+        holder.editWord.addTextChangedListener { text ->
+            card.word = text?.toString() ?: ""
         }
 
-        holder.editBack.addTextChangedListener { text ->
-            card.back = text?.toString() ?: ""
+        holder.editMeaning.addTextChangedListener { text ->
+            card.meaning = text?.toString() ?: ""
+        }
+
+        holder.editPronunciation.addTextChangedListener { text ->
+            card.pronunciation = text?.toString() ?: ""
+        }
+
+        holder.editMnemonic.addTextChangedListener { text ->
+            card.mnemonic = text?.toString() ?: ""
         }
     }
 
