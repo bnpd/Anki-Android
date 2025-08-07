@@ -41,6 +41,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:layout_marginEnd="8dp"
         android:hint="Back"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense">
 
@@ -54,5 +55,12 @@
             android:textSize="14sp" />
 
     </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Reversed Checkbox (Fourth Column) -->
+    <CheckBox
+        android:id="@+id/checkbox_reversed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checked="false" />
 
 </LinearLayout>

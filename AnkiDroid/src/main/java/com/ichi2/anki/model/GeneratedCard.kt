@@ -23,4 +23,5 @@ data class GeneratedCard(
     var front: String,
     var back: String,
     var isSelected: Boolean = true,
+    var isReversed: Boolean = false,
 )

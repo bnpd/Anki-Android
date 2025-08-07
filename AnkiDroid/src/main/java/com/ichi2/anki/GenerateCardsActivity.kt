@@ -59,6 +59,7 @@ class GenerateCardsActivity :
     private lateinit var previewSection: View
     private lateinit var cardsRecyclerView: RecyclerView
     private lateinit var btnSelectAll: MaterialButton
+    private lateinit var btnReverseAll: MaterialButton
     private lateinit var btnApproveSelected: MaterialButton
 
     private var selectedCardCount = 0
@@ -97,6 +98,7 @@ class GenerateCardsActivity :
         previewSection = findViewById(R.id.preview_section)
         cardsRecyclerView = findViewById(R.id.cards_recycler_view)
         btnSelectAll = findViewById(R.id.btn_select_all)
+        btnReverseAll = findViewById(R.id.btn_reverse_all)
         btnApproveSelected = findViewById(R.id.btn_approve_selected)
     }
 
@@ -117,6 +119,9 @@ class GenerateCardsActivity :
 
         // Select all button
         btnSelectAll.setOnClickListener { toggleSelectAll() }
+
+        // Reverse all button
+        btnReverseAll.setOnClickListener { toggleReverseAll() }
 
         // Approve selected button
         btnApproveSelected.setOnClickListener { approveSelectedCards() }
@@ -221,6 +226,16 @@ class GenerateCardsActivity :
         updateApproveButtonState()
     }
 
+    private fun toggleReverseAll() {
+        val allReversed = generatedCards.all { it.isReversed }
+        val newReversedState = !allReversed
+
+        generatedCards.forEach { it.isReversed = newReversedState }
+        cardsAdapter.notifyDataSetChanged()
+
+        btnReverseAll.text = if (newReversedState) "Unreverse All" else "Reverse All"
+    }
+
     private fun updateApproveButtonState() {
         val selectedCount = generatedCards.count { it.isSelected }
         btnApproveSelected.isEnabled = selectedCount > 0
@@ -234,6 +249,10 @@ class GenerateCardsActivity :
         // Update select all button text
         val allSelected = generatedCards.isNotEmpty() && generatedCards.all { it.isSelected }
         btnSelectAll.text = if (allSelected) "Deselect All" else "Select All"
+
+        // Update reverse all button text
+        val allReversed = generatedCards.isNotEmpty() && generatedCards.all { it.isReversed }
+        btnReverseAll.text = if (allReversed) "Unreverse All" else "Reverse All"
     }
 
     private fun approveSelectedCards() {
@@ -252,9 +271,14 @@ class GenerateCardsActivity :
                 val result =
                     withContext(Dispatchers.IO) {
                         CollectionManager.withCol {
-                            // Get the basic note type (first available note type, typically "Basic")
                             val noteTypes = notetypes.all()
-                            val basicNoteType =
+
+                            // Find Langki Language note types
+                            val langkiNoteType = noteTypes.find { it.name == "Langki Language" }
+                            val langkiReversedNoteType = noteTypes.find { it.name == "Langki Language REVERSED" }
+
+                            // Fallback to Basic note type if Langki types don't exist
+                            val fallbackNoteType =
                                 noteTypes.find { it.name == "Basic" }
                                     ?: noteTypes.firstOrNull()
                                     ?: throw IllegalStateException("No note types available")
@@ -268,10 +292,18 @@ class GenerateCardsActivity :
                             // Create and add notes for each selected card
                             selectedCards.forEach { generatedCard ->
                                 try {
-                                    // Create a new note using the basic note type
-                                    val note = newNote(basicNoteType)
+                                    // Choose note type based on reversed state
+                                    val noteType =
+                                        when {
+                                            generatedCard.isReversed && langkiReversedNoteType != null -> langkiReversedNoteType
+                                            !generatedCard.isReversed && langkiNoteType != null -> langkiNoteType
+                                            else -> fallbackNoteType
+                                        }
 
-                                    // Set the fields (Basic note type has "Front" and "Back" fields)
+                                    // Create a new note using the selected note type
+                                    val note = newNote(noteType)
+
+                                    // Set the fields (assuming Front and Back fields exist)
                                     note.setItem("Front", generatedCard.front)
                                     note.setItem("Back", generatedCard.back)
 

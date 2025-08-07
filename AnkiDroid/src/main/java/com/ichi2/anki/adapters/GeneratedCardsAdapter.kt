@@ -40,6 +40,7 @@ class GeneratedCardsAdapter(
         val checkboxSelect: CheckBox = itemView.findViewById(R.id.checkbox_select)
         val editFront: TextInputEditText = itemView.findViewById(R.id.edit_front)
         val editBack: TextInputEditText = itemView.findViewById(R.id.edit_back)
+        val checkboxReversed: CheckBox = itemView.findViewById(R.id.checkbox_reversed)
     }
 
     override fun onCreateViewHolder(
@@ -63,16 +64,22 @@ class GeneratedCardsAdapter(
         holder.checkboxSelect.isChecked = card.isSelected
         holder.editFront.setText(card.front)
         holder.editBack.setText(card.back)
+        holder.checkboxReversed.isChecked = card.isReversed
 
         // Remove previous listeners to avoid conflicts
         holder.checkboxSelect.setOnCheckedChangeListener(null)
+        holder.checkboxReversed.setOnCheckedChangeListener(null)
         holder.editFront.clearTextChangedListeners()
         holder.editBack.clearTextChangedListeners()
 
-        // Set up checkbox listener
+        // Set up checkbox listeners
         holder.checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
             card.isSelected = isChecked
             onSelectionChanged()
+        }
+
+        holder.checkboxReversed.setOnCheckedChangeListener { _, isChecked ->
+            card.isReversed = isChecked
         }
 
         // Set up text change listeners
