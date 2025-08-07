@@ -55,6 +55,9 @@ class DeckPickerContextMenu : AnalyticsDialogFragment() {
         mutableListOf<DeckPickerContextMenuOption>().apply {
             val dyn = requireArguments().getBoolean(ARG_DECK_IS_DYN)
             add(DeckPickerContextMenuOption.ADD_CARD)
+            if (!dyn) {
+                add(DeckPickerContextMenuOption.GENERATE_CARDS_AI)
+            }
             add(DeckPickerContextMenuOption.BROWSE_CARDS)
             if (dyn) {
                 add(DeckPickerContextMenuOption.CUSTOM_STUDY_REBUILD)
@@ -99,6 +102,7 @@ class DeckPickerContextMenu : AnalyticsDialogFragment() {
         EDIT_DESCRIPTION(R.string.edit_deck_description),
         ADD_CARD(R.string.menu_add),
         SCHEDULE_REMINDERS(R.string.schedule_reminders_do_not_translate),
+        GENERATE_CARDS_AI(R.string.menu_generate_cards_ai),
     }
 
     companion object {

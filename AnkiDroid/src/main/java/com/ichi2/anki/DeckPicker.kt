@@ -909,6 +909,12 @@ open class DeckPicker :
                 viewModel.addNote(deckId, setAsCurrent = true)
                 dismissAllDialogFragments()
             }
+            DeckPickerContextMenuOption.GENERATE_CARDS_AI -> {
+                Timber.i("ContextMenu: Generate Cards with AI selected")
+                val intent = GenerateCardsActivity.getIntent(this)
+                startActivity(intent)
+                dismissAllDialogFragments()
+            }
             DeckPickerContextMenuOption.EDIT_DESCRIPTION -> {
                 Timber.i("Editing deck description for deck '%d'", deckId)
                 showDialogFragment(EditDeckDescriptionDialog.newInstance(deckId))
