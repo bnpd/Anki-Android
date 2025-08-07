@@ -23,13 +23,13 @@ object GptUtils {
      * @param prompt The text to send to GPT
      * @param onSuccess Callback when GPT responds successfully
      * @param onError Callback when there's an error
-     * @param model GPT model to use (default: gpt-4o-mini)
+     * @param model GPT model to use (default: gpt-5-mini)
      */
     fun askGpt(
         prompt: String,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
-        model: String = "gpt-4o-mini",
+        model: String = "gpt-5-mini",
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
@@ -65,7 +65,7 @@ object GptUtils {
      */
     suspend fun askGptSync(
         prompt: String,
-        model: String = "gpt-4o-mini",
+        model: String = "gpt-5-mini",
     ): Result<String> =
         withContext(Dispatchers.IO) {
             gptService.sendPrompt(
@@ -166,9 +166,9 @@ object GptUtils {
             
             Please respond with each flashcard in the following format:
             CARD 1:
-            WORD: [Thai word or phrase (in Thai script)]
+            WORD: [Thai word or phrase (only Thai script)]
             MEANING: [German translation]
-            PRONUNCIATION: [precise IPA transcription of WORD]
+            PRONUNCIATION: [IPA transcription of WORD, including tone and length marks]
             MNEMONIC: [mnemonic device or usage note, if usage is unintuitive]
             
             CARD 2:

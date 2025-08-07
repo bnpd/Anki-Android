@@ -50,6 +50,8 @@ class GenerateCardsActivity :
     override val baseSnackbarBuilder: SnackbarBuilder = { }
 
     private lateinit var topicInput: TextInputEditText
+    private lateinit var topicInputSection: View
+    private lateinit var cardCountSection: View
     private lateinit var btn5Cards: MaterialButton
     private lateinit var btn10Cards: MaterialButton
     private lateinit var btn20Cards: MaterialButton
@@ -89,6 +91,8 @@ class GenerateCardsActivity :
 
     private fun initializeViews() {
         topicInput = findViewById(R.id.topic_input)
+        topicInputSection = findViewById(R.id.topic_input_section)
+        cardCountSection = findViewById(R.id.card_count_section)
         btn5Cards = findViewById(R.id.btn_5_cards)
         btn10Cards = findViewById(R.id.btn_10_cards)
         btn20Cards = findViewById(R.id.btn_20_cards)
@@ -196,6 +200,10 @@ class GenerateCardsActivity :
         previewSection.visibility = View.VISIBLE
         updateApproveButtonState()
         btnGenerate.isEnabled = true
+
+        // Hide input sections
+        topicInputSection.visibility = View.GONE
+        cardCountSection.visibility = View.GONE
     }
 
     private fun handleGenerationError(error: String) {

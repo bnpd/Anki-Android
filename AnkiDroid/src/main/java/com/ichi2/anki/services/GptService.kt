@@ -16,7 +16,7 @@ import java.time.Duration
  */
 class GptService {
     companion object {
-        private const val DEFAULT_MODEL = "gpt-4o-mini"
+        private const val DEFAULT_MODEL = "gpt-5-mini"
     }
 
     /**
@@ -74,7 +74,7 @@ class GptService {
      * Uses OpenAI credentials from app preferences
      *
      * @param prompt The text prompt to send to GPT
-     * @param model The GPT model to use (default: gpt-4o-mini)
+     * @param model The GPT model to use (default: gpt-5-mini)
      * @return The GPT response text, or error if credentials are missing/invalid
      */
     suspend fun sendPrompt(
