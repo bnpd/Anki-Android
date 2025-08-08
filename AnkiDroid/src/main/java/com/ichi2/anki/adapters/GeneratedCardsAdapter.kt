@@ -34,6 +34,12 @@ class GeneratedCardsAdapter(
     private val cards: List<GeneratedCard>,
     private val onSelectionChanged: () -> Unit,
 ) : RecyclerView.Adapter<GeneratedCardsAdapter.CardViewHolder>() {
+    init {
+        setHasStableIds(true) // Enable stable IDs for better recycling
+    }
+
+    override fun getItemId(position: Int): Long = cards[position].hashCode().toLong()
+
     class CardViewHolder(
         itemView: View,
     ) : RecyclerView.ViewHolder(itemView) {
@@ -43,6 +49,21 @@ class GeneratedCardsAdapter(
         val editMeaning: TextInputEditText = itemView.findViewById(R.id.edit_meaning)
         val editPronunciation: TextInputEditText = itemView.findViewById(R.id.edit_pronunciation)
         val editMnemonic: TextInputEditText = itemView.findViewById(R.id.edit_mnemonic)
+
+        // Track listeners for cleanup
+        var wordTextWatcher: android.text.TextWatcher? = null
+        var meaningTextWatcher: android.text.TextWatcher? = null
+        var pronunciationTextWatcher: android.text.TextWatcher? = null
+        var mnemonicTextWatcher: android.text.TextWatcher? = null
+
+        fun cleanup() {
+            wordTextWatcher?.let { editWord.removeTextChangedListener(it) }
+            meaningTextWatcher?.let { editMeaning.removeTextChangedListener(it) }
+            pronunciationTextWatcher?.let { editPronunciation.removeTextChangedListener(it) }
+            mnemonicTextWatcher?.let { editMnemonic.removeTextChangedListener(it) }
+            checkboxSelect.setOnCheckedChangeListener(null)
+            checkboxReversed.setOnCheckedChangeListener(null)
+        }
     }
 
     override fun onCreateViewHolder(
@@ -62,6 +83,12 @@ class GeneratedCardsAdapter(
     ) {
         val card = cards[position]
 
+        // Clean up previous listeners
+        holder.cleanup()
+
+        // Tag views with position to prevent wrong updates
+        holder.itemView.setTag(R.id.view_holder_tag, position)
+
         // Set initial values
         holder.checkboxSelect.isChecked = card.isSelected
         holder.checkboxReversed.isChecked = card.isReversed
@@ -70,48 +97,61 @@ class GeneratedCardsAdapter(
         holder.editPronunciation.setText(card.pronunciation)
         holder.editMnemonic.setText(card.mnemonic)
 
-        // Remove previous listeners to avoid conflicts
-        holder.checkboxSelect.setOnCheckedChangeListener(null)
-        holder.checkboxReversed.setOnCheckedChangeListener(null)
-        holder.editWord.clearTextChangedListeners()
-        holder.editMeaning.clearTextChangedListeners()
-        holder.editPronunciation.clearTextChangedListeners()
-        holder.editMnemonic.clearTextChangedListeners()
-
         // Set up checkbox listeners
         holder.checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
-            card.isSelected = isChecked
-            onSelectionChanged()
+            if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+            ) {
+                card.isSelected = isChecked
+                onSelectionChanged()
+            }
         }
 
         holder.checkboxReversed.setOnCheckedChangeListener { _, isChecked ->
-            card.isReversed = isChecked
+            if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+            ) {
+                card.isReversed = isChecked
+            }
         }
 
-        // Set up text change listeners
-        holder.editWord.addTextChangedListener { text ->
-            card.word = text?.toString() ?: ""
-        }
+        // Set up text change listeners with position validation
+        holder.wordTextWatcher =
+            holder.editWord.addTextChangedListener { text ->
+                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                ) {
+                    card.word = text?.toString() ?: ""
+                }
+            }
 
-        holder.editMeaning.addTextChangedListener { text ->
-            card.meaning = text?.toString() ?: ""
-        }
+        holder.meaningTextWatcher =
+            holder.editMeaning.addTextChangedListener { text ->
+                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                ) {
+                    card.meaning = text?.toString() ?: ""
+                }
+            }
 
-        holder.editPronunciation.addTextChangedListener { text ->
-            card.pronunciation = text?.toString() ?: ""
-        }
+        holder.pronunciationTextWatcher =
+            holder.editPronunciation.addTextChangedListener { text ->
+                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                ) {
+                    card.pronunciation = text?.toString() ?: ""
+                }
+            }
 
-        holder.editMnemonic.addTextChangedListener { text ->
-            card.mnemonic = text?.toString() ?: ""
-        }
+        holder.mnemonicTextWatcher =
+            holder.editMnemonic.addTextChangedListener { text ->
+                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                ) {
+                    card.mnemonic = text?.toString() ?: ""
+                }
+            }
     }
 
     override fun getItemCount(): Int = cards.size
-
-    private fun TextInputEditText.clearTextChangedListeners() {
-        // Remove all text watchers by setting text without triggering them
-        val currentText = this.text.toString()
-        this.setText("")
-        this.setText(currentText)
-    }
 }

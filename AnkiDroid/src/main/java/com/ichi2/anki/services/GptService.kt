@@ -4,6 +4,10 @@ import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.R
 import com.openai.client.OpenAIClientAsync
 import com.openai.client.okhttp.OpenAIOkHttpClientAsync
+import com.openai.models.ChatModel
+import com.openai.models.ChatModel.Companion.GPT_5_NANO
+import com.openai.models.Reasoning
+import com.openai.models.ReasoningEffort
 import com.openai.models.responses.ResponseCreateParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,10 +19,6 @@ import java.time.Duration
  * Uses OpenAI credentials from app preferences
  */
 class GptService {
-    companion object {
-        private const val DEFAULT_MODEL = "gpt-5-mini"
-    }
-
     /**
      * Data class to hold OpenAI credentials from preferences
      */
@@ -74,12 +74,12 @@ class GptService {
      * Uses OpenAI credentials from app preferences
      *
      * @param prompt The text prompt to send to GPT
-     * @param model The GPT model to use (default: gpt-5-mini)
+     * @param model The GPT model to use (default: gpt-5-nano)
      * @return The GPT response text, or error if credentials are missing/invalid
      */
     suspend fun sendPrompt(
         prompt: String,
-        model: String = DEFAULT_MODEL,
+        model: ChatModel = GPT_5_NANO,
     ): Result<String> =
         withContext(Dispatchers.IO) {
             try {
@@ -95,6 +95,9 @@ class GptService {
                         .builder()
                         .input(prompt)
                         .model(model)
+                        .reasoning(Reasoning.builder().effort(ReasoningEffort.MINIMAL).build())
+                        // .verbosity(ResponseCreateParams.Verbosity.LOW)
+                        .serviceTier(ResponseCreateParams.ServiceTier.FLEX)
                         .build()
 
                 Timber.d("Sending GPT request with model: $model")

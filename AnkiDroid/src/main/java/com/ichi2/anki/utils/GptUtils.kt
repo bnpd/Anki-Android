@@ -5,7 +5,6 @@ import com.ichi2.anki.services.GptService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
@@ -23,20 +22,18 @@ object GptUtils {
      * @param prompt The text to send to GPT
      * @param onSuccess Callback when GPT responds successfully
      * @param onError Callback when there's an error
-     * @param model GPT model to use (default: gpt-5-mini)
+     * @param model GPT model to use (optional)
      */
     fun askGpt(
         prompt: String,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
-        model: String = "gpt-5-mini",
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val result =
                     gptService.sendPrompt(
                         prompt = prompt,
-                        model = model,
                     )
 
                 result.fold(
@@ -54,25 +51,6 @@ object GptUtils {
             }
         }
     }
-
-    /**
-     * Send a prompt to GPT synchronously (use only from background threads)
-     * Uses OpenAI credentials from app preferences
-     *
-     * @param prompt The text to send to GPT
-     * @param model GPT model to use
-     * @return Result containing the response or error
-     */
-    suspend fun askGptSync(
-        prompt: String,
-        model: String = "gpt-5-mini",
-    ): Result<String> =
-        withContext(Dispatchers.IO) {
-            gptService.sendPrompt(
-                prompt = prompt,
-                model = model,
-            )
-        }
 
     /**
      * Generate flashcard content using GPT
@@ -168,12 +146,13 @@ object GptUtils {
             CARD 1:
             WORD: [Thai word or phrase (only Thai script)]
             MEANING: [German translation]
-            PRONUNCIATION: [IPA transcription of WORD, including tone and length marks]
-            MNEMONIC: [mnemonic device or usage note, if usage is unintuitive]
+            PRONUNCIATION: [IPA transcription of WORD, including pitch diacritics and vowel length. Without initial/final slashes/brackets and tone letters]
+            USAGE: [keep empty if usage is like in german/english. Otherwise, short explanation of the difference in usage]
             
             CARD 2:
             WORD: ...
-            And so on... Make them useful for language learning with accurate translations and pronunciations.
+            And so on. Make them useful for language learning with accurate translations and pronunciations.
+            Start your response right away, following the instructions strictly. Do not ask for clarification or additional information.
             """.trimIndent()
 
         askGpt(
@@ -312,8 +291,8 @@ object GptUtils {
                     line.startsWith("PRONUNCIATION:", ignoreCase = true) -> {
                         currentPronunciation = line.substring(14).trim()
                     }
-                    line.startsWith("MNEMONIC:", ignoreCase = true) -> {
-                        currentMnemonic = line.substring(9).trim()
+                    line.startsWith("USAGE:", ignoreCase = true) -> {
+                        currentMnemonic = line.substring(6).trim()
 
                         // When we hit mnemonic, we should have all fields for a complete card
                         if (currentWord.isNotEmpty() && currentMeaning.isNotEmpty() && currentPronunciation.isNotEmpty()) {
