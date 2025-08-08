@@ -176,16 +176,60 @@ class GenerateCardsActivity :
         showProgress(true)
         btnGenerate.isEnabled = false
 
-        GptUtils.generateMultipleLanguageCards(
-            topic = topic,
-            count = selectedCardCount,
-            onSuccess = { languageCards ->
-                handleGenerationSuccess(languageCards)
-            },
-            onError = { error ->
-                handleGenerationError(error)
-            },
-        )
+        lifecycleScope.launch {
+            val knownWords: List<String> =
+                try {
+                    withContext(Dispatchers.IO) {
+                        // Use the withCol from AnkiActivity, which handles the collection lifecycle.
+                        CollectionManager.withCol {
+                            val currentDeckId = decks.selected()
+                            // Find notes in the current deck.
+                            val noteIds = findNotes("did:$currentDeckId")
+                            val words = mutableListOf<String>()
+                            for (noteId in noteIds) {
+                                getNote(noteId).let { note ->
+                                    // Assuming "Word" with index 1 is the field containing the word.
+                                    // This is based on the "Langki Language (REVERSED)" notetype.
+                                    note.fields[1].let { wordField ->
+                                        if (wordField.isNotBlank()) {
+                                            words.add(wordField)
+                                        }
+                                    }
+                                }
+                            }
+                            words.toList() // This list is returned by the withCol block
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error fetching known words from deck.")
+                    withContext(Dispatchers.Main) {
+                        Toast
+                            .makeText(
+                                this@GenerateCardsActivity,
+                                "Failed to retrieve known words. Please try again.",
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        showProgress(false)
+                        btnGenerate.isEnabled = true
+                    }
+                    return@launch // Exit the coroutine
+                }
+
+            // Call the new GptUtils function with the list of known words.
+            GptUtils.generateCardsForNewWords(
+                topic = topic,
+                count = selectedCardCount,
+                knownWords = knownWords,
+                language = "Thai",
+                nativeLanguage = "German",
+                onSuccess = { languageCards ->
+                    handleGenerationSuccess(languageCards)
+                },
+                onError = { error ->
+                    handleGenerationError(error)
+                },
+            )
+        }
     }
 
     private fun handleGenerationSuccess(languageCards: List<GeneratedCard>) {

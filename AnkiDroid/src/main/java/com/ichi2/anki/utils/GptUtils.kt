@@ -165,6 +165,64 @@ object GptUtils {
     }
 
     /**
+     * Generate language learning flashcards for a topic, excluding already known words.
+     * Uses OpenAI credentials from app preferences.
+     *
+     * @param topic The topic for the flashcards.
+     * @param knownWords A list of words/phrases already known by the user.
+     * @param language The language being learned (e.g., "Thai").
+     * @param nativeLanguage The language for translations (e.g., "German").
+     * @param count Number of new flashcards to generate.
+     * @param onSuccess Callback with a list of GeneratedCard objects for new words.
+     * @param onError Callback when there's an error.
+     */
+    fun generateCardsForNewWords(
+        topic: String,
+        knownWords: List<String>,
+        language: String,
+        nativeLanguage: String,
+        count: Int,
+        onSuccess: (List<GeneratedCard>) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        val knownWordsString = if (knownWords.isEmpty()) "none" else knownWords.joinToString("\n  ")
+
+        val prompt =
+            """
+            I want to learn $language vocabulary, specifically: "$topic".
+            I already know the following $language words/phrases:
+              $knownWordsString
+
+            Please generate $count new $language language learning flashcards for words that are NOT in the list of words I already know.
+
+            Focus on common and useful vocabulary or phrases.
+
+            Respond with each flashcard in the following format:
+            CARD 1:
+            WORD: [$language word or phrase (only $language script)]
+            MEANING: [$nativeLanguage translation of WORD]
+            PRONUNCIATION: [IPA transcription of WORD, including pitch diacritics and vowel length. Without initial/final slashes/brackets and tone letters.]
+            USAGE: [keep empty if usage is like in german/english. Otherwise, short explanation of the difference in usage]
+
+            CARD 2:
+            WORD: ...
+            And so on. Make them useful for language learning with accurate translations and pronunciations.
+            Start your response right away, following the instructions strictly. Do not ask for clarification or additional information.
+            Only provide cards with at least one new word not present in my known list.
+            """.trimIndent()
+
+        Timber.d("GPT prompt for new words: $prompt")
+
+        askGpt(
+            prompt = prompt,
+            onSuccess = { response ->
+                parseLanguageCardsResponse(response, onSuccess, onError)
+            },
+            onError = onError,
+        )
+    }
+
+    /**
      * Generate multiple flashcards for a topic (legacy method for backward compatibility)
      * Uses OpenAI credentials from app preferences
      *

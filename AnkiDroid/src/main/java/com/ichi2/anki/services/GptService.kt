@@ -5,7 +5,7 @@ import com.ichi2.anki.R
 import com.openai.client.OpenAIClientAsync
 import com.openai.client.okhttp.OpenAIOkHttpClientAsync
 import com.openai.models.ChatModel
-import com.openai.models.ChatModel.Companion.GPT_5_NANO
+import com.openai.models.ChatModel.Companion.GPT_5_MINI
 import com.openai.models.Reasoning
 import com.openai.models.ReasoningEffort
 import com.openai.models.responses.ResponseCreateParams
@@ -79,7 +79,7 @@ class GptService {
      */
     suspend fun sendPrompt(
         prompt: String,
-        model: ChatModel = GPT_5_NANO,
+        model: ChatModel = GPT_5_MINI,
     ): Result<String> =
         withContext(Dispatchers.IO) {
             try {
