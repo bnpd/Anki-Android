@@ -216,14 +216,24 @@ class GenerateCardsActivity :
                 }
 
             // Call the new GptUtils function with the list of known words.
-            GptUtils.generateCardsForNewWords(
+            GptUtils.suggestNewVocab(
                 topic = topic,
                 count = selectedCardCount,
                 knownWords = knownWords,
                 language = "Thai",
-                nativeLanguage = "German",
-                onSuccess = { languageCards ->
-                    handleGenerationSuccess(languageCards)
+                onSuccess = { newWords ->
+                    Timber.d("GPT Suggested new words: $newWords")
+                    GptUtils.generateCardsForNewWords(
+                        words = newWords,
+                        language = "Thai",
+                        nativeLanguage = "German",
+                        onSuccess = { languageCards ->
+                            handleGenerationSuccess(languageCards)
+                        },
+                        onError = { error ->
+                            handleGenerationError(error)
+                        },
+                    )
                 },
                 onError = { error ->
                     handleGenerationError(error)

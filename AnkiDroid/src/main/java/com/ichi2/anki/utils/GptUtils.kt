@@ -2,6 +2,9 @@ package com.ichi2.anki.utils
 
 import com.ichi2.anki.model.GeneratedCard
 import com.ichi2.anki.services.GptService
+import com.openai.models.ChatModel
+import com.openai.models.ReasoningEffort
+import com.openai.models.responses.ResponseCreateParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,12 +31,18 @@ object GptUtils {
         prompt: String,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
+        model: ChatModel = ChatModel.GPT_5_MINI,
+        reasoningEffort: ReasoningEffort = ReasoningEffort.MINIMAL,
+        serviceTier: ResponseCreateParams.ServiceTier = ResponseCreateParams.ServiceTier.DEFAULT,
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val result =
                     gptService.sendPrompt(
                         prompt = prompt,
+                        model = model,
+                        reasoningEffort = reasoningEffort,
+                        serviceTier = serviceTier,
                     )
 
                 result.fold(
@@ -165,60 +174,88 @@ object GptUtils {
     }
 
     /**
-     * Generate language learning flashcards for a topic, excluding already known words.
+     * Suggest new vocabulary for a topic, excluding already known words.
      * Uses OpenAI credentials from app preferences.
      *
-     * @param topic The topic for the flashcards.
+     * @param topic The topic for the words.
      * @param knownWords A list of words/phrases already known by the user.
      * @param language The language being learned (e.g., "Thai").
+     * @param count Number of new words to generate.
+     * @param onSuccess Callback taking a List<String> containing the new words.
+     * @param onError Callback when there's an error.
+     */
+    fun suggestNewVocab(
+        topic: String,
+        knownWords: List<String>,
+        language: String,
+        count: Int,
+        onSuccess: (List<String>) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        val knownWordsString = if (knownWords.isEmpty()) "none" else knownWords.joinToString("") // for Thai, no spaces needed
+
+        val prompt =
+            """
+            I want to learn $language vocabulary, specifically: $topic.
+            I already know the following $language words:
+              $knownWordsString
+
+            Please suggest $count new words/expressions which would have the biggest benefit for my ability to communicate myself.
+            Format them as a list with one Thai word per line.
+            Only provide the list, following the instructions strictly. Do not ask for clarification or additional information. 
+            Only provide words or expressions with at least one word not present in my known list.
+            """.trimIndent()
+        askGpt(
+            prompt = prompt,
+            onSuccess = { wordsString -> onSuccess(wordsString.lines().filter { it.isNotBlank() && !knownWordsString.contains(it) }) },
+            onError = onError,
+            model = ChatModel.GPT_5_MINI,
+            reasoningEffort = ReasoningEffort.LOW,
+            serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
+        )
+    }
+
+    /**
+     * Generate language learning flashcards for specified words.
+     * Uses OpenAI credentials from app preferences.
+     *
+     * @param words A List containing the words/expressions to create flashcards for.
+     * @param language The language being learned (e.g., "Thai").
      * @param nativeLanguage The language for translations (e.g., "German").
-     * @param count Number of new flashcards to generate.
      * @param onSuccess Callback with a list of GeneratedCard objects for new words.
      * @param onError Callback when there's an error.
      */
     fun generateCardsForNewWords(
-        topic: String,
-        knownWords: List<String>,
+        words: List<String>,
         language: String,
         nativeLanguage: String,
-        count: Int,
         onSuccess: (List<GeneratedCard>) -> Unit,
         onError: (String) -> Unit,
     ) {
-        val knownWordsString = if (knownWords.isEmpty()) "none" else knownWords.joinToString("\n  ")
-
         val prompt =
             """
-            I want to learn $language vocabulary, specifically: "$topic".
-            I already know the following $language words/phrases:
-              $knownWordsString
-
-            Please generate $count new $language language learning flashcards for words that are NOT in the list of words I already know.
-
-            Focus on common and useful vocabulary or phrases.
-
-            Respond with each flashcard in the following format:
+            Please generate $language language learning flashcards for the following words/expressions:
+            ${words.joinToString("\n")}
+            Respond with each flashcard in the following format: 
             CARD 1:
             WORD: [$language word or phrase (only $language script)]
+            IPA: [IPA transcription of WORD, e.g. tɕʰûa moːŋ]
             MEANING: [$nativeLanguage translation of WORD]
-            PRONUNCIATION: [IPA transcription of WORD, including pitch diacritics and vowel length. Without initial/final slashes/brackets and tone letters.]
-            USAGE: [keep empty if usage is like in german/english. Otherwise, short explanation of the difference in usage]
-
+            USAGE: [keep empty if usage is like in $nativeLanguage. Otherwise, short explanation of the difference in usage]
             CARD 2:
             WORD: ...
             And so on. Make them useful for language learning with accurate translations and pronunciations.
-            Start your response right away, following the instructions strictly. Do not ask for clarification or additional information.
-            Only provide cards with at least one new word not present in my known list.
+            Only provide the final response, following the instructions strictly. Do not ask for clarification or additional information.
             """.trimIndent()
-
-        Timber.d("GPT prompt for new words: $prompt")
-
         askGpt(
             prompt = prompt,
             onSuccess = { response ->
                 parseLanguageCardsResponse(response, onSuccess, onError)
             },
             onError = onError,
+            model = ChatModel.GPT_5,
+            reasoningEffort = ReasoningEffort.MINIMAL,
+            serviceTier = ResponseCreateParams.ServiceTier.FLEX,
         )
     }
 
@@ -343,11 +380,11 @@ object GptUtils {
                     line.startsWith("WORD:", ignoreCase = true) -> {
                         currentWord = line.substring(5).trim()
                     }
+                    line.startsWith("IPA:", ignoreCase = true) -> {
+                        currentPronunciation = line.substring(4).trim()
+                    }
                     line.startsWith("MEANING:", ignoreCase = true) -> {
                         currentMeaning = line.substring(8).trim()
-                    }
-                    line.startsWith("PRONUNCIATION:", ignoreCase = true) -> {
-                        currentPronunciation = line.substring(14).trim()
                     }
                     line.startsWith("USAGE:", ignoreCase = true) -> {
                         currentMnemonic = line.substring(6).trim()
