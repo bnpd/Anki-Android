@@ -175,6 +175,8 @@ class GenerateCardsActivity :
 
         showProgress(true)
         btnGenerate.isEnabled = false
+        // Make some space for preview
+        cardCountSection.visibility = View.GONE
 
         lifecycleScope.launch {
             val knownWords: List<String> =
@@ -211,6 +213,9 @@ class GenerateCardsActivity :
                             ).show()
                         showProgress(false)
                         btnGenerate.isEnabled = true
+                        // Show input sections again if there was an error early on
+                        topicInputSection.visibility = View.VISIBLE
+                        cardCountSection.visibility = View.VISIBLE
                     }
                     return@launch // Exit the coroutine
                 }
@@ -223,12 +228,28 @@ class GenerateCardsActivity :
                 language = "Thai",
                 onSuccess = { newWords ->
                     Timber.d("GPT Suggested new words: $newWords")
+
+                    // Display preview of new words
+                    generatedCards.clear()
+                    generatedCards.addAll(
+                        newWords.map {
+                            GeneratedCard(
+                                word = it,
+                                meaning = "",
+                                pronunciation = "",
+                            )
+                        },
+                    ) // Create partial cards
+                    cardsAdapter.notifyDataSetChanged()
+                    previewSection.visibility = View.VISIBLE
+
+                    // Now generate full card details for these words
                     GptUtils.generateCardsForNewWords(
                         words = newWords,
                         language = "Thai",
                         nativeLanguage = "German",
                         onSuccess = { languageCards ->
-                            handleGenerationSuccess(languageCards)
+                            handleGenerationSuccess(languageCards) // This will update the cards with full details
                         },
                         onError = { error ->
                             handleGenerationError(error)
@@ -245,6 +266,7 @@ class GenerateCardsActivity :
     private fun handleGenerationSuccess(languageCards: List<GeneratedCard>) {
         Timber.d("Generated ${languageCards.size} language cards successfully")
 
+        // Clear the partial cards and add the full language cards
         generatedCards.clear()
         generatedCards.addAll(languageCards)
 
@@ -255,9 +277,8 @@ class GenerateCardsActivity :
         updateApproveButtonState()
         btnGenerate.isEnabled = true
 
-        // Hide input sections
+        // make more space
         topicInputSection.visibility = View.GONE
-        cardCountSection.visibility = View.GONE
     }
 
     private fun handleGenerationError(error: String) {
@@ -265,6 +286,9 @@ class GenerateCardsActivity :
 
         showProgress(false)
         btnGenerate.isEnabled = true
+        topicInputSection.visibility = View.VISIBLE
+        cardCountSection.visibility = View.VISIBLE
+        previewSection.visibility = View.GONE
 
         Toast.makeText(this, "Failed to generate cards: $error", Toast.LENGTH_LONG).show()
     }
@@ -364,7 +388,10 @@ class GenerateCardsActivity :
                                             note.setItem("Word", generatedCard.word)
                                             note.setItem("Meaning", generatedCard.meaning)
                                             if (fields.contains("Pronunciation")) {
-                                                note.setItem("Pronunciation", generatedCard.pronunciation)
+                                                note.setItem(
+                                                    "Pronunciation",
+                                                    generatedCard.pronunciation,
+                                                )
                                             }
                                             if (fields.contains("Mnemonic") && generatedCard.mnemonic.isNotEmpty()) {
                                                 note.setItem("Mnemonic", generatedCard.mnemonic)
@@ -383,9 +410,15 @@ class GenerateCardsActivity :
                                                 }
                                             note.setItem("Back", backContent)
                                         }
+
                                         else -> {
                                             // Use first two fields as fallback
-                                            if (fields.isNotEmpty()) note.setItem(fields[0], generatedCard.word)
+                                            if (fields.isNotEmpty()) {
+                                                note.setItem(
+                                                    fields[0],
+                                                    generatedCard.word,
+                                                )
+                                            }
                                             if (fields.size > 1) {
                                                 val backContent =
                                                     buildString {
@@ -418,17 +451,32 @@ class GenerateCardsActivity :
                 showProgress(false)
 
                 if (errorCount == 0) {
-                    Toast.makeText(this@GenerateCardsActivity, "Successfully added $successCount cards to deck!", Toast.LENGTH_SHORT).show()
+                    Toast
+                        .makeText(
+                            this@GenerateCardsActivity,
+                            "Successfully added $successCount cards to deck!",
+                            Toast.LENGTH_SHORT,
+                        ).show()
                     finish() // Return to previous screen
                 } else {
-                    Toast.makeText(this@GenerateCardsActivity, "Added $successCount cards, $errorCount failed", Toast.LENGTH_LONG).show()
+                    Toast
+                        .makeText(
+                            this@GenerateCardsActivity,
+                            "Added $successCount cards, $errorCount failed",
+                            Toast.LENGTH_LONG,
+                        ).show()
                     btnApproveSelected.isEnabled = true
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to add cards to deck")
                 showProgress(false)
                 btnApproveSelected.isEnabled = true
-                Toast.makeText(this@GenerateCardsActivity, "Failed to add cards: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast
+                    .makeText(
+                        this@GenerateCardsActivity,
+                        "Failed to add cards: ${e.message}",
+                        Toast.LENGTH_LONG,
+                    ).show()
             }
         }
     }
