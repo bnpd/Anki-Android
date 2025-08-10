@@ -19,12 +19,17 @@ package com.ichi2.anki.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textfield.TextInputEditText
 import com.ichi2.anki.R
 import com.ichi2.anki.model.GeneratedCard
+import com.ichi2.anki.utils.GptUtils
 
 /**
  * Adapter for displaying generated language learning flashcards in a RecyclerView
@@ -50,6 +55,12 @@ class GeneratedCardsAdapter(
         val editPronunciation: TextInputEditText = itemView.findViewById(R.id.edit_pronunciation)
         val editMnemonic: TextInputEditText = itemView.findViewById(R.id.edit_mnemonic)
 
+        // AI Edit Views
+        val buttonEditCardWithAi: Button = itemView.findViewById(R.id.button_edit_card_with_ai)
+        val layoutAiEditSection: LinearLayout = itemView.findViewById(R.id.ai_edit_section) // Updated ID
+        val editTextAiPrompt: TextInputEditText = itemView.findViewById(R.id.edit_ai_prompt) // Updated ID
+        val buttonSubmitAiPrompt: Button = itemView.findViewById(R.id.button_submit_ai_edit) // Updated ID
+
         // Track listeners for cleanup
         var wordTextWatcher: android.text.TextWatcher? = null
         var meaningTextWatcher: android.text.TextWatcher? = null
@@ -63,6 +74,8 @@ class GeneratedCardsAdapter(
             mnemonicTextWatcher?.let { editMnemonic.removeTextChangedListener(it) }
             checkboxSelect.setOnCheckedChangeListener(null)
             checkboxReversed.setOnCheckedChangeListener(null)
+            buttonEditCardWithAi.setOnClickListener(null)
+            buttonSubmitAiPrompt.setOnClickListener(null)
         }
     }
 
@@ -96,6 +109,10 @@ class GeneratedCardsAdapter(
         holder.editMeaning.setText(card.meaning)
         holder.editPronunciation.setText(card.pronunciation)
         holder.editMnemonic.setText(card.mnemonic)
+
+        // Initially hide AI edit section and clear prompt
+        holder.layoutAiEditSection.isVisible = false
+        holder.editTextAiPrompt.setText("")
 
         // Set up checkbox listeners
         holder.checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
@@ -151,6 +168,63 @@ class GeneratedCardsAdapter(
                     card.mnemonic = text?.toString() ?: ""
                 }
             }
+
+        // AI Edit Button Listener
+        holder.buttonEditCardWithAi.setOnClickListener {
+            // Toggle visibility of the AI edit section
+            holder.layoutAiEditSection.isVisible = !holder.layoutAiEditSection.isVisible
+        }
+
+        // AI Submit Button Listener
+        holder.buttonSubmitAiPrompt.setOnClickListener {
+            val currentPosition = holder.getAbsoluteAdapterPosition()
+            if (currentPosition != RecyclerView.NO_POSITION &&
+                holder.itemView.getTag(R.id.view_holder_tag) as Int == currentPosition
+            ) {
+                val prompt =
+                    holder.editTextAiPrompt.text
+                        .toString()
+                        .trim()
+                if (prompt.isNotEmpty()) {
+                    holder.buttonSubmitAiPrompt.isEnabled = false
+                    holder.buttonSubmitAiPrompt.text = "Loading..."
+
+                    GptUtils.editCard(
+                        card,
+                        prompt,
+                        "Thai",
+                        onSuccess = { updatedCard ->
+                            // Update the card in the adapter
+                            for (field in GeneratedCard::class.java.declaredFields) {
+                                card.word = updatedCard.word
+                                card.meaning = updatedCard.meaning
+                                card.pronunciation = updatedCard.pronunciation
+                                card.mnemonic = updatedCard.mnemonic
+                            }
+                            Toast
+                                .makeText(
+                                    holder.itemView.context,
+                                    "Card edited successfully!",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            holder.buttonSubmitAiPrompt.isEnabled = false
+                            holder.buttonSubmitAiPrompt.text = "Request Edit"
+                            holder.layoutAiEditSection.isVisible = false
+                        },
+                        onError = { error ->
+                            Toast
+                                .makeText(
+                                    holder.itemView.context,
+                                    "Error editing card: $error",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            holder.buttonSubmitAiPrompt.isEnabled = false
+                            holder.buttonSubmitAiPrompt.text = "Request Edit"
+                        },
+                    )
+                }
+            }
+        }
     }
 
     override fun getItemCount(): Int = cards.size

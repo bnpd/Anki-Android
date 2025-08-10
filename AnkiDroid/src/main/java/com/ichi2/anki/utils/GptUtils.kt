@@ -62,77 +62,6 @@ object GptUtils {
     }
 
     /**
-     * Generate flashcard content using GPT
-     * Uses OpenAI credentials from app preferences
-     *
-     * @param topic The topic for the flashcard
-     * @param onSuccess Callback with front and back content
-     * @param onError Callback when there's an error
-     */
-    fun generateFlashcard(
-        topic: String,
-        onSuccess: (front: String, back: String) -> Unit,
-        onError: (String) -> Unit,
-    ) {
-        val prompt =
-            """
-            Create a flashcard for the topic: "$topic"
-            
-            Please respond in the following format:
-            FRONT: [question or term]
-            BACK: [answer or definition]
-            
-            Make it educational and clear.
-            """.trimIndent()
-
-        askGpt(
-            prompt = prompt,
-            onSuccess = { response ->
-                parseFlashcardResponse(response, onSuccess, onError)
-            },
-            onError = onError,
-        )
-    }
-
-    /**
-     * Improve existing flashcard content using GPT
-     * Uses OpenAI credentials from app preferences
-     *
-     * @param frontText Current front text
-     * @param backText Current back text
-     * @param onSuccess Callback with improved content
-     * @param onError Callback when there's an error
-     */
-    fun improveFlashcard(
-        frontText: String,
-        backText: String,
-        onSuccess: (front: String, back: String) -> Unit,
-        onError: (String) -> Unit,
-    ) {
-        val prompt =
-            """
-            Please improve this flashcard by making it clearer and more educational:
-            
-            Current front: "$frontText"
-            Current back: "$backText"
-            
-            Please respond in the following format:
-            FRONT: [improved question or term]
-            BACK: [improved answer or definition]
-            
-            Keep the core concept but make it more engaging and easier to understand.
-            """.trimIndent()
-
-        askGpt(
-            prompt = prompt,
-            onSuccess = { response ->
-                parseFlashcardResponse(response, onSuccess, onError)
-            },
-            onError = onError,
-        )
-    }
-
-    /**
      * Generate multiple language learning flashcards for a topic
      * Uses OpenAI credentials from app preferences
      *
@@ -254,111 +183,65 @@ object GptUtils {
             },
             onError = onError,
             model = ChatModel.GPT_5,
-            reasoningEffort = ReasoningEffort.MINIMAL,
+            reasoningEffort = ReasoningEffort.LOW, // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
             serviceTier = ResponseCreateParams.ServiceTier.FLEX,
         )
     }
 
     /**
-     * Generate multiple flashcards for a topic (legacy method for backward compatibility)
-     * Uses OpenAI credentials from app preferences
+     * Edit a language learning flashcard by following instructions.
+     * Uses OpenAI credentials from app preferences.
      *
-     * @param topic The topic for flashcards
-     * @param count Number of flashcards to generate
-     * @param onSuccess Callback with list of flashcard pairs
-     * @param onError Callback when there's an error
+     * @param card A List containing the words/expressions to create flashcards for.
+     * @param instructions Instruction how & what on the card should be edited.
+     * @param language The language being learned (e.g., "Thai").
+     * @param onSuccess Callback with a list of GeneratedCard objects for new words.
+     * @param onError Callback when there's an error.
      */
-    fun generateMultipleFlashcards(
-        topic: String,
-        count: Int,
-        onSuccess: (List<Pair<String, String>>) -> Unit,
+    fun editCard(
+        card: GeneratedCard,
+        instructions: String,
+        language: String,
+        onSuccess: (GeneratedCard) -> Unit,
         onError: (String) -> Unit,
     ) {
-        // Convert to language cards and then back to pairs for compatibility
-        generateMultipleLanguageCards(
-            topic = topic,
-            count = count,
-            onSuccess = { cards ->
-                val pairs =
-                    cards.map { card ->
-                        Pair(card.word, "${card.meaning}\n${card.pronunciation}")
-                    }
-                onSuccess(pairs)
+        val maxInstructionChars = 300 // reasonable limit, ca 3-5 sentences. Might help avoid prompt injection
+        if (instructions.isBlank()) {
+            Timber.w("No instructions provided for editing card")
+            onError("No instructions provided for editing card")
+            return
+        }
+        if (instructions.length > maxInstructionChars) {
+            Timber.w("Instructions too long for editing card: ${instructions.length} characters. Max is $maxInstructionChars")
+            onError("Instructions too long for editing card. Max is $maxInstructionChars characters")
+            return
+        }
+        val prompt =
+            """
+            The following is a $language language learning flashcard:
+            CARD 1:
+            === BEGIN CARD ===
+            $card
+            === END CARD ===
+            
+            Please edit the card according to the following instructions:
+            === BEGIN INSTRUCTIONS ===
+            $instructions
+            === END INSTRUCTIONS ===
+            
+            Leave the other fields unchanged.
+            Only provide the final edited card in the same format (excluding BEGIN & END CARD markers). Do not ask for clarification or additional information.
+            """.trimIndent()
+        askGpt(
+            prompt = prompt,
+            onSuccess = { response ->
+                parseLanguageCardsResponse(response, { words -> onSuccess(words[0]) }, onError)
             },
             onError = onError,
+            model = ChatModel.GPT_5,
+            reasoningEffort = ReasoningEffort.LOW, // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
+            serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
         )
-    }
-
-    private fun parseFlashcardResponse(
-        response: String,
-        onSuccess: (String, String) -> Unit,
-        onError: (String) -> Unit,
-    ) {
-        try {
-            val lines = response.lines().map { it.trim() }
-            var front = ""
-            var back = ""
-
-            for (line in lines) {
-                when {
-                    line.startsWith("FRONT:", ignoreCase = true) -> {
-                        front = line.substring(6).trim()
-                    }
-                    line.startsWith("BACK:", ignoreCase = true) -> {
-                        back = line.substring(5).trim()
-                    }
-                }
-            }
-
-            if (front.isNotEmpty() && back.isNotEmpty()) {
-                onSuccess(front, back)
-            } else {
-                onError("Could not parse flashcard format from GPT response")
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Error parsing flashcard response")
-            onError("Error parsing GPT response: ${e.message}")
-        }
-    }
-
-    private fun parseMultipleFlashcardsResponse(
-        response: String,
-        onSuccess: (List<Pair<String, String>>) -> Unit,
-        onError: (String) -> Unit,
-    ) {
-        try {
-            val flashcards = mutableListOf<Pair<String, String>>()
-            val lines = response.lines().map { it.trim() }
-
-            var currentFront = ""
-            var currentBack = ""
-
-            for (line in lines) {
-                when {
-                    line.startsWith("FRONT:", ignoreCase = true) -> {
-                        currentFront = line.substring(6).trim()
-                    }
-                    line.startsWith("BACK:", ignoreCase = true) -> {
-                        currentBack = line.substring(5).trim()
-
-                        if (currentFront.isNotEmpty() && currentBack.isNotEmpty()) {
-                            flashcards.add(Pair(currentFront, currentBack))
-                            currentFront = ""
-                            currentBack = ""
-                        }
-                    }
-                }
-            }
-
-            if (flashcards.isNotEmpty()) {
-                onSuccess(flashcards)
-            } else {
-                onError("Could not parse any flashcards from GPT response")
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Error parsing multiple flashcards response")
-            onError("Error parsing GPT response: ${e.message}")
-        }
     }
 
     private fun parseLanguageCardsResponse(
@@ -404,22 +287,9 @@ object GptUtils {
                             currentWord = ""
                             currentMeaning = ""
                             currentPronunciation = ""
-                            currentMnemonic = ""
                         }
                     }
                 }
-            }
-
-            // Handle case where last card doesn't have a mnemonic
-            if (currentWord.isNotEmpty() && currentMeaning.isNotEmpty() && currentPronunciation.isNotEmpty()) {
-                cards.add(
-                    GeneratedCard(
-                        word = currentWord,
-                        meaning = currentMeaning,
-                        pronunciation = currentPronunciation,
-                        mnemonic = currentMnemonic,
-                    ),
-                )
             }
 
             if (cards.isNotEmpty()) {

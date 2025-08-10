@@ -26,4 +26,15 @@ data class GeneratedCard(
     var mnemonic: String = "",
     var isSelected: Boolean = true,
     var isReversed: Boolean = false,
-)
+) {
+    /**
+     * Returns a string representation of the card, useful for debugging
+     */
+    override fun toString(): String =
+        """
+        WORD: $word
+        IPA: $pronunciation
+        MEANING: $meaning
+        USAGE: $mnemonic
+        """.trimIndent()
+}
