@@ -29,14 +29,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
+import com.ichi2.anki.CollectionManager.withCol
 import com.ichi2.anki.adapters.GeneratedCardsAdapter
 import com.ichi2.anki.model.GeneratedCard
 import com.ichi2.anki.snackbar.BaseSnackbarBuilderProvider
 import com.ichi2.anki.snackbar.SnackbarBuilder
 import com.ichi2.anki.utils.GptUtils
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
@@ -65,6 +64,7 @@ class GenerateCardsActivity :
     private lateinit var btnApproveSelected: MaterialButton
 
     private var selectedCardCount = 0
+    private lateinit var selectedDeckName: String
     private lateinit var cardsAdapter: GeneratedCardsAdapter
     private val generatedCards = mutableListOf<GeneratedCard>()
 
@@ -79,7 +79,16 @@ class GenerateCardsActivity :
         setupToolbar()
         initializeViews()
         setupListeners()
-        setupRecyclerView()
+        lifecycleScope.launch {
+            selectedDeckName =
+                withCol {
+                    // Load the selected deck from the collection
+                    decks.name(decks.selected())
+                }
+
+            // RecyclerView setup should be done after we have the deck name
+            setupRecyclerView()
+        }
     }
 
     private fun setupToolbar() {
@@ -132,7 +141,7 @@ class GenerateCardsActivity :
     }
 
     private fun setupRecyclerView() {
-        cardsAdapter = GeneratedCardsAdapter(generatedCards) { updateApproveButtonState() }
+        cardsAdapter = GeneratedCardsAdapter(generatedCards, selectedDeckName) { updateApproveButtonState() }
         cardsRecyclerView.layoutManager = LinearLayoutManager(this)
         cardsRecyclerView.adapter = cardsAdapter
     }
@@ -164,12 +173,12 @@ class GenerateCardsActivity :
     private fun generateCards() {
         val topic = topicInput.text?.toString()?.trim()
         if (topic.isNullOrBlank()) {
-            Toast.makeText(this, "Please enter a topic", Toast.LENGTH_SHORT).show()
+            showThemedToast(this, "Please enter a topic", true)
             return
         }
 
         if (selectedCardCount == 0) {
-            Toast.makeText(this, "Please select number of cards", Toast.LENGTH_SHORT).show()
+            showThemedToast(this, "Please select number of cards", true)
             return
         }
 
@@ -181,42 +190,37 @@ class GenerateCardsActivity :
         lifecycleScope.launch {
             val knownWords: List<String> =
                 try {
-                    withContext(Dispatchers.IO) {
-                        // Use the withCol from AnkiActivity, which handles the collection lifecycle.
-                        CollectionManager.withCol {
-                            val currentDeckId = decks.selected()
-                            // Find notes in the current deck.
-                            val noteIds = findNotes("did:$currentDeckId")
-                            val words = mutableListOf<String>()
-                            for (noteId in noteIds) {
-                                getNote(noteId).let { note ->
-                                    // Assuming "Word" with index 1 is the field containing the word.
-                                    // This is based on the "Langki Language (REVERSED)" notetype.
-                                    note.fields[1].let { wordField ->
-                                        if (wordField.isNotBlank()) {
-                                            words.add(wordField)
-                                        }
+                    // Use the withCol from AnkiActivity, which handles the collection lifecycle.
+                    withCol {
+                        val currentDeckId = decks.selected()
+                        // Find notes in the current deck.
+                        val noteIds = findNotes("did:$currentDeckId")
+                        val words = mutableListOf<String>()
+                        for (noteId in noteIds) {
+                            getNote(noteId).let { note ->
+                                // Assuming "Word" with index 1 is the field containing the word.
+                                // This is based on the "Langki Language (REVERSED)" notetype.
+                                note.fields[1].let { wordField ->
+                                    if (wordField.isNotBlank()) {
+                                        words.add(wordField)
                                     }
                                 }
                             }
-                            words.toList() // This list is returned by the withCol block
                         }
+                        words.toList() // This list is returned by the withCol block
                     }
                 } catch (e: Exception) {
                     Timber.e(e, "Error fetching known words from deck.")
-                    withContext(Dispatchers.Main) {
-                        Toast
-                            .makeText(
-                                this@GenerateCardsActivity,
-                                "Failed to retrieve known words. Please try again.",
-                                Toast.LENGTH_LONG,
-                            ).show()
-                        showProgress(false)
-                        btnGenerate.isEnabled = true
-                        // Show input sections again if there was an error early on
-                        topicInputSection.visibility = View.VISIBLE
-                        cardCountSection.visibility = View.VISIBLE
-                    }
+                    showThemedToast(
+                        this@GenerateCardsActivity,
+                        "Failed to retrieve known words. Please try again.",
+                        false,
+                    )
+                    showProgress(false)
+                    btnGenerate.isEnabled = true
+                    // Show input sections again if there was an error early on
+                    topicInputSection.visibility = View.VISIBLE
+                    cardCountSection.visibility = View.VISIBLE
                     return@launch // Exit the coroutine
                 }
 
@@ -225,7 +229,7 @@ class GenerateCardsActivity :
                 topic = topic,
                 count = selectedCardCount,
                 knownWords = knownWords,
-                language = "Thai",
+                language = selectedDeckName,
                 onSuccess = { newWords ->
                     Timber.d("GPT Suggested new words: $newWords")
 
@@ -246,7 +250,7 @@ class GenerateCardsActivity :
                     // Now generate full card details for these words
                     GptUtils.generateCardsForNewWords(
                         words = newWords,
-                        language = "Thai",
+                        language = selectedDeckName,
                         nativeLanguage = "German",
                         onSuccess = { languageCards ->
                             handleGenerationSuccess(languageCards) // This will update the cards with full details
@@ -290,7 +294,7 @@ class GenerateCardsActivity :
         cardCountSection.visibility = View.VISIBLE
         previewSection.visibility = View.GONE
 
-        Toast.makeText(this, "Failed to generate cards: $error", Toast.LENGTH_LONG).show()
+        showThemedToast(this, "Failed to generate cards: $error", false)
     }
 
     private fun showProgress(show: Boolean) {
@@ -341,7 +345,7 @@ class GenerateCardsActivity :
         val selectedCards = generatedCards.filter { it.isSelected }
 
         if (selectedCards.isEmpty()) {
-            Toast.makeText(this, "No cards selected", Toast.LENGTH_SHORT).show()
+            showThemedToast(this, "No cards selected", true)
             return
         }
 
@@ -351,99 +355,97 @@ class GenerateCardsActivity :
         lifecycleScope.launch {
             try {
                 val result =
-                    withContext(Dispatchers.IO) {
-                        CollectionManager.withCol {
-                            val noteTypes = notetypes.all()
+                    withCol {
+                        val noteTypes = notetypes.all()
 
-                            // Get current deck ID
-                            val currentDeckId = decks.selected()
+                        // Get current deck ID
+                        val currentDeckId = decks.selected()
 
-                            var successCount = 0
-                            var errorCount = 0
+                        var successCount = 0
+                        var errorCount = 0
 
-                            // Create and add notes for each selected card
-                            selectedCards.forEach { generatedCard ->
-                                try {
-                                    val noteType =
-                                        when {
-                                            generatedCard.isReversed -> {
-                                                noteTypes.find { it.name == "Langki Language REVERSED" }
-                                                    ?: throw IllegalStateException("Reversed note type not available")
-                                            }
-                                            else -> {
-                                                noteTypes.find { it.name == "Langki Language" }
-                                                    ?: throw IllegalStateException("Note type not available")
-                                            }
-                                        }
-
-                                    // Create a new note using the selected note type
-                                    val note = newNote(noteType)
-
-                                    // Set the fields based on available fields in the note type
-                                    val fields = noteType.fieldsNames
-
-                                    // Try to map to specific language learning fields if they exist
+                        // Create and add notes for each selected card
+                        selectedCards.forEach { generatedCard ->
+                            try {
+                                val noteType =
                                     when {
-                                        fields.contains("Word") && fields.contains("Meaning") -> {
-                                            note.setItem("Word", generatedCard.word)
-                                            note.setItem("Meaning", generatedCard.meaning)
-                                            if (fields.contains("Pronunciation")) {
-                                                note.setItem(
-                                                    "Pronunciation",
-                                                    generatedCard.pronunciation,
-                                                )
-                                            }
-                                            if (fields.contains("Mnemonic") && generatedCard.mnemonic.isNotEmpty()) {
-                                                note.setItem("Mnemonic", generatedCard.mnemonic)
-                                            }
+                                        generatedCard.isReversed -> {
+                                            noteTypes.find { it.name == "Langki Language REVERSED" }
+                                                ?: throw IllegalStateException("Reversed note type not available")
                                         }
-                                        fields.contains("Front") && fields.contains("Back") -> {
-                                            // Fallback to basic Front/Back format
-                                            note.setItem("Front", generatedCard.word)
-                                            val backContent =
-                                                buildString {
-                                                    append(generatedCard.meaning)
-                                                    append("\n\nPronunciation: ${generatedCard.pronunciation}")
-                                                    if (generatedCard.mnemonic.isNotEmpty()) {
-                                                        append("\nMnemonic: ${generatedCard.mnemonic}")
-                                                    }
-                                                }
-                                            note.setItem("Back", backContent)
-                                        }
-
                                         else -> {
-                                            // Use first two fields as fallback
-                                            if (fields.isNotEmpty()) {
-                                                note.setItem(
-                                                    fields[0],
-                                                    generatedCard.word,
-                                                )
-                                            }
-                                            if (fields.size > 1) {
-                                                val backContent =
-                                                    buildString {
-                                                        append(generatedCard.meaning)
-                                                        append("\n${generatedCard.pronunciation}")
-                                                        if (generatedCard.mnemonic.isNotEmpty()) {
-                                                            append("\n${generatedCard.mnemonic}")
-                                                        }
-                                                    }
-                                                note.setItem(fields[1], backContent)
-                                            }
+                                            noteTypes.find { it.name == "Langki Language" }
+                                                ?: throw IllegalStateException("Note type not available")
                                         }
                                     }
 
-                                    // Add the note to the current deck
-                                    addNote(note, currentDeckId)
-                                    successCount++
-                                } catch (e: Exception) {
-                                    Timber.e(e, "Failed to add note: ${generatedCard.word}")
-                                    errorCount++
-                                }
-                            }
+                                // Create a new note using the selected note type
+                                val note = newNote(noteType)
 
-                            Pair(successCount, errorCount)
+                                // Set the fields based on available fields in the note type
+                                val fields = noteType.fieldsNames
+
+                                // Try to map to specific language learning fields if they exist
+                                when {
+                                    fields.contains("Word") && fields.contains("Meaning") -> {
+                                        note.setItem("Word", generatedCard.word)
+                                        note.setItem("Meaning", generatedCard.meaning)
+                                        if (fields.contains("Pronunciation")) {
+                                            note.setItem(
+                                                "Pronunciation",
+                                                generatedCard.pronunciation,
+                                            )
+                                        }
+                                        if (fields.contains("Mnemonic") && generatedCard.mnemonic.isNotEmpty()) {
+                                            note.setItem("Mnemonic", generatedCard.mnemonic)
+                                        }
+                                    }
+                                    fields.contains("Front") && fields.contains("Back") -> {
+                                        // Fallback to basic Front/Back format
+                                        note.setItem("Front", generatedCard.word)
+                                        val backContent =
+                                            buildString {
+                                                append(generatedCard.meaning)
+                                                append("\n\nPronunciation: ${generatedCard.pronunciation}")
+                                                if (generatedCard.mnemonic.isNotEmpty()) {
+                                                    append("\nMnemonic: ${generatedCard.mnemonic}")
+                                                }
+                                            }
+                                        note.setItem("Back", backContent)
+                                    }
+
+                                    else -> {
+                                        // Use first two fields as fallback
+                                        if (fields.isNotEmpty()) {
+                                            note.setItem(
+                                                fields[0],
+                                                generatedCard.word,
+                                            )
+                                        }
+                                        if (fields.size > 1) {
+                                            val backContent =
+                                                buildString {
+                                                    append(generatedCard.meaning)
+                                                    append("\n${generatedCard.pronunciation}")
+                                                    if (generatedCard.mnemonic.isNotEmpty()) {
+                                                        append("\n${generatedCard.mnemonic}")
+                                                    }
+                                                }
+                                            note.setItem(fields[1], backContent)
+                                        }
+                                    }
+                                }
+
+                                // Add the note to the current deck
+                                addNote(note, currentDeckId)
+                                successCount++
+                            } catch (e: Exception) {
+                                Timber.e(e, "Failed to add note: ${generatedCard.word}")
+                                errorCount++
+                            }
                         }
+
+                        Pair(successCount, errorCount)
                     }
 
                 val (successCount, errorCount) = result

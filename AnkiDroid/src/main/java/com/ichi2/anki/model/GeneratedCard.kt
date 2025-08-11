@@ -16,6 +16,8 @@
 
 package com.ichi2.anki.model
 
+import com.ichi2.anki.libanki.Note
+
 /**
  * Data class representing a generated language learning flashcard that can be edited and selected
  */
@@ -37,4 +39,23 @@ data class GeneratedCard(
         MEANING: $meaning
         USAGE: $mnemonic
         """.trimIndent()
+}
+
+fun generatedCardFromNote(note: Note): GeneratedCard {
+    val wordFieldIndex = note.notetype.fields.indexOfFirst { it.name == "Word" }
+    val meaningFieldIndex = note.notetype.fields.indexOfFirst { it.name == "Meaning" }
+    val pronunciationFieldIndex = note.notetype.fields.indexOfFirst { it.name == "Pronunciation" }
+    val mnemonicFieldIndex = note.notetype.fields.indexOfFirst { it.name == "Mnemonic" }
+    if (wordFieldIndex < 0 || meaningFieldIndex < 0 || pronunciationFieldIndex < 0 || mnemonicFieldIndex < 0) {
+        throw IllegalArgumentException("Note does not contain required fields")
+    }
+
+    return GeneratedCard(
+        word = note.fields[wordFieldIndex],
+        meaning = note.fields[meaningFieldIndex],
+        pronunciation = note.fields[pronunciationFieldIndex],
+        mnemonic = note.fields[mnemonicFieldIndex],
+        isSelected = true, // not used in this context, so defaulting to true
+        isReversed = false, // not used in this context, so defaulting to false
+    )
 }

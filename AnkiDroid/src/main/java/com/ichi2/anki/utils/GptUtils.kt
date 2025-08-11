@@ -192,7 +192,7 @@ object GptUtils {
      * Edit a language learning flashcard by following instructions.
      * Uses OpenAI credentials from app preferences.
      *
-     * @param card A List containing the words/expressions to create flashcards for.
+     * @param card The card to edit.
      * @param instructions Instruction how & what on the card should be edited.
      * @param language The language being learned (e.g., "Thai").
      * @param onSuccess Callback with a list of GeneratedCard objects for new words.
@@ -219,7 +219,6 @@ object GptUtils {
         val prompt =
             """
             The following is a $language language learning flashcard:
-            CARD 1:
             === BEGIN CARD ===
             $card
             === END CARD ===
@@ -239,6 +238,52 @@ object GptUtils {
             },
             onError = onError,
             model = ChatModel.GPT_5,
+            reasoningEffort = ReasoningEffort.LOW, // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
+            serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
+        )
+    }
+
+    /**
+     * Identify errors on a language learning flashcard.
+     * Uses OpenAI credentials from app preferences.
+     *
+     * @param card The card to check.
+     * @param language The language being learned (e.g., "Thai").
+     * @param onSuccess Callback with a list of GeneratedCard objects for new words.
+     * @param onError Callback when there's an error.
+     */
+    fun identifyErrorsOnCard(
+        card: GeneratedCard,
+        language: String,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        val prompt =
+            """
+            The following is a $language language learning flashcard:
+            === BEGIN CARD ===
+            $card
+            === END CARD ===
+            
+            Identify any incorrect information on the card, such as:
+            - Incorrect word/phrase on the card
+            - Incorrect IPA transcription
+            - Incorrect meaning/translation
+            - Incorrect usage explanation (but it's fine if this field is empty or used for a mnemonic)
+            
+            Respond with either "NO ERRORS" if everything is correct, or with your remarks in the following format:
+            NAME_OF_WRONG_FIELD: [your remarks]
+            MAYBE_NAME_OF_OTHER_WRONG_FIELD: [your remarks]
+            Follow the instructions exactly. Do not ask for clarification or additional information.
+            """.trimIndent()
+        askGpt(
+            prompt = prompt,
+            onSuccess = { response ->
+                Timber.d("GPT response for identifying errors:\n$response")
+                onSuccess(response)
+            },
+            onError = onError,
+            model = ChatModel.GPT_5_MINI,
             reasoningEffort = ReasoningEffort.LOW, // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
             serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
         )

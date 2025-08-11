@@ -37,6 +37,7 @@ import com.ichi2.anki.utils.GptUtils
  */
 class GeneratedCardsAdapter(
     private val cards: List<GeneratedCard>,
+    private val selectedDeckName: String,
     private val onSelectionChanged: () -> Unit,
 ) : RecyclerView.Adapter<GeneratedCardsAdapter.CardViewHolder>() {
     init {
@@ -192,15 +193,13 @@ class GeneratedCardsAdapter(
                     GptUtils.editCard(
                         card,
                         prompt,
-                        "Thai",
+                        selectedDeckName,
                         onSuccess = { updatedCard ->
                             // Update the card in the adapter
-                            for (field in GeneratedCard::class.java.declaredFields) {
-                                card.word = updatedCard.word
-                                card.meaning = updatedCard.meaning
-                                card.pronunciation = updatedCard.pronunciation
-                                card.mnemonic = updatedCard.mnemonic
-                            }
+                            card.word = updatedCard.word
+                            card.meaning = updatedCard.meaning
+                            card.pronunciation = updatedCard.pronunciation
+                            card.mnemonic = updatedCard.mnemonic
                             Toast
                                 .makeText(
                                     holder.itemView.context,

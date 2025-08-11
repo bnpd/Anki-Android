@@ -76,6 +76,8 @@ import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.QueueType
 import com.ichi2.anki.libanki.sched.Counts
 import com.ichi2.anki.libanki.sched.CurrentQueueState
+import com.ichi2.anki.model.GeneratedCard
+import com.ichi2.anki.model.generatedCardFromNote
 import com.ichi2.anki.multimedia.audio.AudioRecordingController
 import com.ichi2.anki.multimedia.audio.AudioRecordingController.Companion.generateTempAudioFile
 import com.ichi2.anki.multimedia.audio.AudioRecordingController.Companion.isAudioRecordingSaved
@@ -113,6 +115,7 @@ import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.internationalization.toSentenceCase
 import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
+import com.ichi2.anki.utils.GptUtils.identifyErrorsOnCard
 import com.ichi2.anki.utils.ext.flag
 import com.ichi2.anki.utils.ext.setUserFlagForCards
 import com.ichi2.anki.utils.ext.showDialogFragment
@@ -235,7 +238,12 @@ open class Reviewer :
         toolbar = findViewById(R.id.toolbar)
         micToolBarLayer = findViewById(R.id.mic_tool_bar_layer)
         processor = BindingMap(sharedPrefs(), ViewerCommand.entries, this)
-        if (sharedPrefs().getString("answerButtonPosition", "bottom") == "bottom" && !navBarNeedsScrim) {
+        if (sharedPrefs().getString(
+                "answerButtonPosition",
+                "bottom",
+            ) == "bottom" &&
+            !navBarNeedsScrim
+        ) {
             setNavigationBarColor(R.attr.showAnswerColor)
         }
         if (!sharedPrefs().getBoolean("showDeckTitle", false)) {
@@ -286,7 +294,8 @@ open class Reviewer :
         }
 
         // If we don't know: assume it's not shown
-        val shownAsToolbarButton = actionButtons.findMenuItem(ActionButtons.RES_MARK)?.isActionButton == true
+        val shownAsToolbarButton =
+            actionButtons.findMenuItem(ActionButtons.RES_MARK)?.isActionButton == true
         return !shownAsToolbarButton || prefFullscreenReview
     }
 
@@ -418,6 +427,7 @@ open class Reviewer :
                 Timber.i("Reviewer:: Home button pressed")
                 closeReviewer(RESULT_OK)
             }
+
             R.id.action_undo -> {
                 Timber.i("Reviewer:: Undo button pressed")
                 if (showWhiteboard && whiteboard != null && !whiteboard!!.undoEmpty()) {
@@ -426,35 +436,43 @@ open class Reviewer :
                     undo()
                 }
             }
+
             R.id.action_redo -> {
                 Timber.i("Reviewer:: Redo button pressed")
                 redo()
             }
+
             R.id.action_reset_card_progress -> {
                 Timber.i("Reviewer:: Reset progress button pressed")
                 showResetCardDialog()
             }
+
             R.id.action_mark_card -> {
                 Timber.i("Reviewer:: Mark button pressed")
                 onMark(currentCard)
             }
+
             R.id.action_replay -> {
                 Timber.i("Reviewer:: Replay media button pressed (from menu)")
                 playMedia(doMediaReplay = true)
             }
+
             R.id.action_toggle_mic_tool_bar -> {
                 Timber.i("Reviewer:: Voice playback visibility set to %b", !isMicToolBarVisible)
                 // Check permission to record and request if not granted
                 openOrToggleMicToolbar()
             }
+
             R.id.action_tag -> {
                 Timber.i("Reviewer:: Tag button pressed")
                 showTagsDialog()
             }
+
             R.id.action_edit -> {
                 Timber.i("Reviewer:: Edit note button pressed")
                 editCard()
             }
+
             R.id.action_bury_card -> buryCard()
             R.id.action_bury_note -> buryNote()
             R.id.action_suspend_card -> suspendCard()
@@ -465,39 +483,59 @@ open class Reviewer :
                 Timber.i("Reviewer:: Delete note button pressed")
                 showDeleteNoteDialog()
             }
+
             R.id.action_toggle_auto_advance -> {
                 Timber.i("Reviewer:: Toggle Auto Advance button pressed")
                 toggleAutoAdvance()
             }
+
             R.id.action_change_whiteboard_pen_color -> {
                 Timber.i("Reviewer:: Pen Color button pressed")
                 changeWhiteboardPenColor()
             }
+
             R.id.action_save_whiteboard -> {
                 Timber.i("Reviewer:: Save whiteboard button pressed")
                 if (whiteboard != null) {
                     try {
-                        val savedWhiteboardFileName = whiteboard!!.saveWhiteboard(TimeManager.time).path
-                        showSnackbar(getString(R.string.white_board_image_saved, savedWhiteboardFileName), Snackbar.LENGTH_SHORT)
+                        val savedWhiteboardFileName =
+                            whiteboard!!.saveWhiteboard(TimeManager.time).path
+                        showSnackbar(
+                            getString(
+                                R.string.white_board_image_saved,
+                                savedWhiteboardFileName,
+                            ),
+                            Snackbar.LENGTH_SHORT,
+                        )
                     } catch (e: Exception) {
                         Timber.w(e)
-                        showSnackbar(getString(R.string.white_board_image_save_failed, e.localizedMessage), Snackbar.LENGTH_SHORT)
+                        showSnackbar(
+                            getString(
+                                R.string.white_board_image_save_failed,
+                                e.localizedMessage,
+                            ),
+                            Snackbar.LENGTH_SHORT,
+                        )
                     }
                 }
             }
+
             R.id.action_clear_whiteboard -> {
                 Timber.i("Reviewer:: Clear whiteboard button pressed")
                 clearWhiteboard()
             }
+
             R.id.action_hide_whiteboard -> { // toggle whiteboard visibility
                 Timber.i("Reviewer:: Whiteboard visibility set to %b", !showWhiteboard)
                 setWhiteboardVisibility(!showWhiteboard)
                 refreshActionBar()
             }
+
             R.id.action_toggle_eraser -> { // toggle eraser mode
                 Timber.i("Reviewer:: Eraser button pressed")
                 toggleEraser()
             }
+
             R.id.action_toggle_stylus -> { // toggle stylus mode
                 Timber.i("Reviewer:: Stylus set to %b", !toggleStylus)
                 toggleStylus = !toggleStylus
@@ -505,9 +543,11 @@ open class Reviewer :
                 MetaDB.storeWhiteboardStylusState(this, parentDid, toggleStylus)
                 refreshActionBar()
             }
+
             R.id.action_toggle_whiteboard -> {
                 toggleWhiteboard()
             }
+
             R.id.action_open_deck_options -> {
                 Timber.i("Reviewer:: Opening deck options")
                 val i =
@@ -515,18 +555,22 @@ open class Reviewer :
                         .getIntent(this, getColUnsafe.decks.current().id)
                 deckOptionsLauncher.launch(i)
             }
+
             R.id.action_select_tts -> {
                 Timber.i("Reviewer:: Select TTS button pressed")
                 showSelectTtsDialogue()
             }
+
             R.id.action_add_note_reviewer -> {
                 Timber.i("Reviewer:: Add note button pressed")
                 addNote()
             }
+
             R.id.action_card_info -> {
                 Timber.i("Card Viewer:: Card Info")
                 openCardInfo()
             }
+
             R.id.user_action_1 -> userAction(1)
             R.id.user_action_2 -> userAction(2)
             R.id.user_action_3 -> userAction(3)
@@ -735,7 +779,9 @@ open class Reviewer :
                     CrashReportService.sendExceptionReport(e, "Unable to create recorder tool bar")
                     showThemedToast(
                         this,
-                        this.getText(R.string.multimedia_editor_audio_view_create_failed).toString(),
+                        this
+                            .getText(R.string.multimedia_editor_audio_view_create_failed)
+                            .toString(),
                         true,
                     )
                 }
@@ -788,7 +834,10 @@ open class Reviewer :
     @NeedsTest("Starting animation from swipe is inverse to the finishing one")
     protected fun openCardInfo(fromGesture: Gesture? = null) {
         if (currentCard == null) {
-            showSnackbar(getString(R.string.multimedia_editor_something_wrong), Snackbar.LENGTH_SHORT)
+            showSnackbar(
+                getString(R.string.multimedia_editor_something_wrong),
+                Snackbar.LENGTH_SHORT,
+            )
             return
         }
         Timber.i("opening card info")
@@ -822,7 +871,8 @@ open class Reviewer :
                 val flag = currentCard!!.flag
                 flagIcon.setIcon(flag.drawableRes)
                 if (flag == Flag.NONE && actionButtons.status.flagsIsOverflown()) {
-                    val flagColor = ThemeUtils.getThemeAttrColor(this, android.R.attr.colorControlNormal)
+                    val flagColor =
+                        ThemeUtils.getThemeAttrColor(this, android.R.attr.colorControlNormal)
                     flagIcon.icon?.mutate()?.setTint(flagColor)
                 }
             }
@@ -830,7 +880,9 @@ open class Reviewer :
 
         // Anki Desktop Translations
         menu.findItem(R.id.action_reschedule_card).title =
-            CollectionManager.TR.actionsSetDueDate().toSentenceCase(this, R.string.sentence_set_due_date)
+            CollectionManager.TR
+                .actionsSetDueDate()
+                .toSentenceCase(this, R.string.sentence_set_due_date)
 
         // Undo button
         @DrawableRes val undoIconId: Int
@@ -925,10 +977,18 @@ open class Reviewer :
             if (!actionButtons.status.whiteboardPenColorIsDisabled()) {
                 changePenColorIcon.isVisible = true
             }
-            val whiteboardIcon = ContextCompat.getDrawable(applicationContext, R.drawable.ic_gesture_white)!!.mutate()
-            val stylusIcon = ContextCompat.getDrawable(this, R.drawable.ic_gesture_stylus)!!.mutate()
-            val whiteboardColorPaletteIcon = ContextCompat.getDrawable(applicationContext, R.drawable.ic_color_lens_white_24dp)!!.mutate()
-            val eraserIcon = ContextCompat.getDrawable(applicationContext, R.drawable.ic_eraser)!!.mutate()
+            val whiteboardIcon =
+                ContextCompat
+                    .getDrawable(applicationContext, R.drawable.ic_gesture_white)!!
+                    .mutate()
+            val stylusIcon =
+                ContextCompat.getDrawable(this, R.drawable.ic_gesture_stylus)!!.mutate()
+            val whiteboardColorPaletteIcon =
+                ContextCompat
+                    .getDrawable(applicationContext, R.drawable.ic_color_lens_white_24dp)!!
+                    .mutate()
+            val eraserIcon =
+                ContextCompat.getDrawable(applicationContext, R.drawable.ic_eraser)!!.mutate()
             if (showWhiteboard) {
                 // "hide whiteboard" icon
                 whiteboardIcon.alpha = Themes.ALPHA_ICON_ENABLED_LIGHT
@@ -1181,6 +1241,35 @@ open class Reviewer :
         state?.timeboxReached?.let { dealWithTimeBox(it) }
         currentCard = state?.topCard
         queueState = state
+
+        // identify errors on the card
+        val note = currentCard!!.note(getColUnsafe)
+        var generatedCard: GeneratedCard
+        try {
+            generatedCard = generatedCardFromNote(note)
+        } catch (e: IllegalArgumentException) {
+            Timber.w(e, "Tried to identify errors on note which wasnt Langki note type")
+            return
+        }
+        val selectedDeckName =
+            withCol {
+                decks.name(currentCard!!.currentDeckId())
+            }
+        identifyErrorsOnCard(
+            generatedCard,
+            selectedDeckName,
+            onSuccess = { output ->
+                addNote()
+                showThemedToast(
+                    this,
+                    output,
+                    false,
+                )
+            },
+            onError = { error ->
+                Timber.w(error, "Error identifying Errors on card")
+            },
+        )
     }
 
     override suspend fun answerCardInner(rating: Rating) {
@@ -1209,7 +1298,8 @@ open class Reviewer :
         val nCards = timebox.reps
         val nMins = timebox.secs / 60
         val mins = resources.getQuantityString(R.plurals.in_minutes, nMins, nMins)
-        val timeboxMessage = resources.getQuantityString(R.plurals.timebox_reached, nCards, nCards, mins)
+        val timeboxMessage =
+            resources.getQuantityString(R.plurals.timebox_reached, nCards, nCards, mins)
         suspendCancellableCoroutine { coroutines ->
             Timber.i("Showing timebox reached dialog")
             AlertDialog.Builder(this).show {
@@ -1334,94 +1424,117 @@ open class Reviewer :
                 toggleFlag(Flag.RED)
                 return true
             }
+
             ViewerCommand.TOGGLE_FLAG_ORANGE -> {
                 toggleFlag(Flag.ORANGE)
                 return true
             }
+
             ViewerCommand.TOGGLE_FLAG_GREEN -> {
                 toggleFlag(Flag.GREEN)
                 return true
             }
+
             ViewerCommand.TOGGLE_FLAG_BLUE -> {
                 toggleFlag(Flag.BLUE)
                 return true
             }
+
             ViewerCommand.TOGGLE_FLAG_PINK -> {
                 toggleFlag(Flag.PINK)
                 return true
             }
+
             ViewerCommand.TOGGLE_FLAG_TURQUOISE -> {
                 toggleFlag(Flag.TURQUOISE)
                 return true
             }
+
             ViewerCommand.TOGGLE_FLAG_PURPLE -> {
                 toggleFlag(Flag.PURPLE)
                 return true
             }
+
             ViewerCommand.UNSET_FLAG -> {
                 onFlag(currentCard, Flag.NONE)
                 return true
             }
+
             ViewerCommand.MARK -> {
                 onMark(currentCard)
                 return true
             }
+
             ViewerCommand.REDO -> {
                 redo()
                 return true
             }
+
             ViewerCommand.ADD_NOTE -> {
                 addNote(fromGesture)
                 return true
             }
+
             ViewerCommand.CARD_INFO -> {
                 openCardInfo(fromGesture)
                 return true
             }
+
             ViewerCommand.RESCHEDULE_NOTE -> {
                 showDueDateDialog()
                 return true
             }
+
             ViewerCommand.TOGGLE_AUTO_ADVANCE -> {
                 toggleAutoAdvance()
                 return true
             }
+
             ViewerCommand.USER_ACTION_1 -> {
                 userAction(1)
                 return true
             }
+
             ViewerCommand.USER_ACTION_2 -> {
                 userAction(2)
                 return true
             }
+
             ViewerCommand.USER_ACTION_3 -> {
                 userAction(3)
                 return true
             }
+
             ViewerCommand.USER_ACTION_4 -> {
                 userAction(4)
                 return true
             }
+
             ViewerCommand.USER_ACTION_5 -> {
                 userAction(5)
                 return true
             }
+
             ViewerCommand.USER_ACTION_6 -> {
                 userAction(6)
                 return true
             }
+
             ViewerCommand.USER_ACTION_7 -> {
                 userAction(7)
                 return true
             }
+
             ViewerCommand.USER_ACTION_8 -> {
                 userAction(8)
                 return true
             }
+
             ViewerCommand.USER_ACTION_9 -> {
                 userAction(9)
                 return true
             }
+
             else -> return super.executeCommand(which, fromGesture)
         }
     }
@@ -1573,7 +1686,8 @@ open class Reviewer :
     @Suppress("deprecation") // #9332: UI Visibility -> Insets
     private fun isImmersiveSystemUiVisible(
         activity: AnkiActivity,
-    ): Boolean = activity.window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION == 0
+    ): Boolean =
+        activity.window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION == 0
 
     override suspend fun handlePostRequest(
         uri: String,
@@ -1642,7 +1756,12 @@ open class Reviewer :
         }
         whiteboard.onPaintColorChangeListener =
             OnPaintColorChangeListener { color ->
-                MetaDB.storeWhiteboardPenColor(this@Reviewer, parentDid, !currentTheme.isNightMode, color)
+                MetaDB.storeWhiteboardPenColor(
+                    this@Reviewer,
+                    parentDid,
+                    !currentTheme.isNightMode,
+                    color,
+                )
             }
         whiteboard.setOnTouchListener { v: View, event: MotionEvent? ->
             if (event == null) return@setOnTouchListener false
