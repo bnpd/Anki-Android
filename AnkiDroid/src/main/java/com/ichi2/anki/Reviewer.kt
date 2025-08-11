@@ -1241,7 +1241,12 @@ open class Reviewer :
         state?.timeboxReached?.let { dealWithTimeBox(it) }
         currentCard = state?.topCard
         queueState = state
+        if (currentCard?.note != null) {
+            lintCurrentNote()
+        }
+    }
 
+    private suspend fun lintCurrentNote() {
         // identify errors on the card
         val note = currentCard!!.note!!
 
