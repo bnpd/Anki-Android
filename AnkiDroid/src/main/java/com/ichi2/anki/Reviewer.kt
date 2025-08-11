@@ -1243,7 +1243,13 @@ open class Reviewer :
         queueState = state
 
         // identify errors on the card
-        val note = currentCard!!.note(getColUnsafe)
+        val note = currentCard!!.note!!
+
+        if (note.tags.contains("identify-errors-ran")) {
+            Timber.i("identify-errors has already been run on this note, skipping")
+            return
+        }
+
         var generatedCard: GeneratedCard
         try {
             generatedCard = generatedCardFromNote(note)
@@ -1251,6 +1257,7 @@ open class Reviewer :
             Timber.w(e, "Tried to identify errors on note which wasnt Langki note type")
             return
         }
+
         val selectedDeckName =
             withCol {
                 decks.name(currentCard!!.currentDeckId())
@@ -1259,7 +1266,13 @@ open class Reviewer :
             generatedCard,
             selectedDeckName,
             onSuccess = { output ->
-                addNote()
+                lifecycleScope.launch {
+                    note.tags.add("identify-errors-ran")
+                    withCol {
+                        @SuppressLint("CheckResult")
+                        updateNote(note, skipUndoEntry = true)
+                    }
+                }
                 showThemedToast(
                     this,
                     output,
