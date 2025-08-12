@@ -84,6 +84,7 @@ value class SetDueDateDays(
 
 data class CurrentQueueState(
     val topCard: Card,
+    val upcomingCard: Card?,
     val countsIndex: Counts.Queue,
     var states: SchedulingStates,
     val context: SchedulingContext,
@@ -115,6 +116,11 @@ open class Scheduler(
         return queue.cardsList.firstOrNull()?.let {
             CurrentQueueState(
                 topCard = Card(it.card).apply { startTimer() },
+                upcomingCard =
+                    queue.cardsList
+                        .getOrNull(1)
+                        ?.card
+                        ?.let { Card(it) },
                 countsIndex =
                     when (it.queue) {
                         QueuedCards.Queue.NEW -> Counts.Queue.NEW
@@ -137,7 +143,7 @@ open class Scheduler(
     fun describeNextStates(states: SchedulingStates): List<String> = col.backend.describeNextStates(states)
 
     private val queuedCards: QueuedCards
-        get() = col.backend.getQueuedCards(fetchLimit = 1, intradayLearningOnly = false)
+        get() = col.backend.getQueuedCards(fetchLimit = 2, intradayLearningOnly = false)
 
     open fun answerCard(
         info: CurrentQueueState,

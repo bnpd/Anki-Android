@@ -183,7 +183,8 @@ object GptUtils {
             },
             onError = onError,
             model = ChatModel.GPT_5,
-            reasoningEffort = ReasoningEffort.LOW, // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
+            reasoningEffort = ReasoningEffort.LOW,
+            // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
             serviceTier = ResponseCreateParams.ServiceTier.FLEX,
         )
     }
@@ -238,7 +239,8 @@ object GptUtils {
             },
             onError = onError,
             model = ChatModel.GPT_5,
-            reasoningEffort = ReasoningEffort.LOW, // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
+            reasoningEffort = ReasoningEffort.LOW,
+            // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
             serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
         )
     }
@@ -255,7 +257,7 @@ object GptUtils {
     fun identifyErrorsOnCard(
         card: GeneratedCard,
         language: String,
-        onSuccess: (Boolean, String, GeneratedCard) -> Unit,
+        onSuccess: (LintResult) -> Unit,
         onError: (String) -> Unit,
     ) {
         val prompt =
@@ -283,12 +285,26 @@ object GptUtils {
                 Timber.d("GPT response for identifying errors:\n$response")
                 if (response.trim().replace("\"", "") == "NO ERRORS") {
                     Timber.d("No errors found on card")
-                    onSuccess(false, response, card) // No errors, return the original card
+                    onSuccess(
+                        LintResult(
+                            completed = true,
+                            errorsFound = false,
+                            response = response,
+                            remarksPerField = card,
+                        ),
+                    )
                 } else {
                     try {
                         val updatedCard = parseSinglePartialLanguageCardResponse(response)
                         Timber.d("Errors found on card, returning updated card: $updatedCard")
-                        onSuccess(true, response, updatedCard) // Return the updated card with errors fixed
+                        onSuccess(
+                            LintResult(
+                                completed = true,
+                                errorsFound = true,
+                                response = response,
+                                remarksPerField = updatedCard,
+                            ),
+                        )
                     } catch (e: Exception) {
                         Timber.e(e, "Error parsing GPT response for identifying errors")
                         onError("Error parsing GPT response: ${e.message}")
@@ -297,7 +313,8 @@ object GptUtils {
             },
             onError = onError,
             model = ChatModel.GPT_5_MINI,
-            reasoningEffort = ReasoningEffort.LOW, // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
+            reasoningEffort = ReasoningEffort.LOW,
+            // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
             serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
         )
     }
@@ -394,3 +411,10 @@ object GptUtils {
         }
     }
 }
+
+data class LintResult(
+    val completed: Boolean,
+    val errorsFound: Boolean = false,
+    val response: String? = null,
+    val remarksPerField: GeneratedCard? = null,
+)
