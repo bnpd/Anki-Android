@@ -40,4 +40,11 @@
         android:summary="@string/openai_project_summary"
         app:useSimpleSummaryProvider="true"/>
 
+    <EditTextPreference
+        android:key="@string/pref_openai_card_lint_instructions_key"
+        android:title="@string/pref_openai_card_lint_instructions_title"
+        android:summary="@string/pref_openai_card_lint_instructions_summary"
+        android:defaultValue="@string/pref_openai_card_lint_instructions_default"
+        app:useSimpleSummaryProvider="false"/>
+
 </PreferenceScreen>

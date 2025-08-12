@@ -272,6 +272,9 @@
     <string name="openai_project_title" maxLength="41">OpenAI Project ID</string>
     <string name="openai_project_summary">Optional: Your OpenAI project ID</string>
     <string name="pref_openai_project_key">openai_project</string>
+    <string name="pref_openai_card_lint_instructions_key" translatable="false">card_lint_user_instructions</string>
+    <string name="pref_openai_card_lint_instructions_title" maxLength="41">Card Linting Instructions</string>
+    <string name="pref_openai_card_lint_instructions_summary">Instructions for AI when checking cards for errors</string>
 
     <!-- Controls -->
     <string name="binding_add_gesture">Add gesture</string>

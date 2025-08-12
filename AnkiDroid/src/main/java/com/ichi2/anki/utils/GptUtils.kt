@@ -1,5 +1,8 @@
 package com.ichi2.anki.utils
 
+import com.ichi2.anki.AnkiDroidApp
+import com.ichi2.anki.AnkiDroidApp.Companion.sharedPrefs
+import com.ichi2.anki.R
 import com.ichi2.anki.model.GeneratedCard
 import com.ichi2.anki.services.GptService
 import com.openai.models.ChatModel
@@ -220,17 +223,17 @@ object GptUtils {
         val prompt =
             """
             The following is a $language language learning flashcard:
-            === BEGIN CARD ===
+            `
             $card
-            === END CARD ===
+            `
             
             Please edit the card according to the following instructions:
-            === BEGIN INSTRUCTIONS ===
+            `
             $instructions
-            === END INSTRUCTIONS ===
+            `
             
             Leave the other fields unchanged.
-            Only provide the final edited card in the same format (excluding BEGIN & END CARD markers). Do not ask for clarification or additional information.
+            Only provide the final edited card in the same format. Do not ask for clarification or additional information.
             """.trimIndent()
         askGpt(
             prompt = prompt,
@@ -260,19 +263,18 @@ object GptUtils {
         onSuccess: (LintResult) -> Unit,
         onError: (String) -> Unit,
     ) {
+        val userInstructions =
+            sharedPrefs().getString(AnkiDroidApp.instance.getString(R.string.pref_openai_card_lint_instructions_key), "") ?: ""
         val prompt =
             """
             The following is a $language language learning flashcard:
-            === BEGIN CARD ===
+            `
             WORD: ${card.word}
             IPA: ${card.pronunciation}
             MEANING: ${card.meaning}
-            === END CARD ===
+            `
             
-            Identify any incorrect information on the card, such as:
-            - Incorrect word/phrase on the card
-            - Incorrect IPA transcription (empty is fine. Broad transcription is fine)
-            - Incorrect meaning/translation
+            $userInstructions
             
             Respond with either "NO ERRORS" if everything is correct, or with your remarks in the following format:
             NAME_OF_WRONG_FIELD: [your remarks]
