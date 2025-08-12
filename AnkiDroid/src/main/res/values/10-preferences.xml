@@ -275,6 +275,7 @@
     <string name="pref_openai_card_lint_instructions_key" translatable="false">card_lint_user_instructions</string>
     <string name="pref_openai_card_lint_instructions_title" maxLength="41">Card Linting Instructions</string>
     <string name="pref_openai_card_lint_instructions_summary">Instructions for AI when checking cards for errors</string>
+    <string name="pref_openai_card_lint_instructions_default">Identify any incorrect information on the card, such as:\n- Incorrect word/phrase on the card\n- Incorrect IPA transcription (empty is fine. Broad transcription is fine)\n- Incorrect meaning/translation</string>
 
     <!-- Controls -->
     <string name="binding_add_gesture">Add gesture</string>
