@@ -315,7 +315,7 @@ object GptUtils {
             model = ChatModel.GPT_5_MINI,
             reasoningEffort = ReasoningEffort.LOW,
             // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
-            serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
+            serviceTier = ResponseCreateParams.ServiceTier.FLEX,
         )
     }
 
