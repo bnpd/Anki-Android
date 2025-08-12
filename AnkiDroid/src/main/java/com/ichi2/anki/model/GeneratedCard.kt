@@ -41,21 +41,10 @@ data class GeneratedCard(
         """.trimIndent()
 }
 
-fun generatedCardFromNote(note: Note): GeneratedCard {
-    val wordFieldIndex = note.notetype.fields.indexOfFirst { it.name == "Word" }
-    val meaningFieldIndex = note.notetype.fields.indexOfFirst { it.name == "Meaning" }
-    val pronunciationFieldIndex = note.notetype.fields.indexOfFirst { it.name == "Pronunciation" }
-    val mnemonicFieldIndex = note.notetype.fields.indexOfFirst { it.name == "Mnemonic" }
-    if (wordFieldIndex < 0 || meaningFieldIndex < 0 || pronunciationFieldIndex < 0 || mnemonicFieldIndex < 0) {
-        throw IllegalArgumentException("Note does not contain required fields")
-    }
-
-    return GeneratedCard(
-        word = note.fields[wordFieldIndex],
-        meaning = note.fields[meaningFieldIndex],
-        pronunciation = note.fields[pronunciationFieldIndex],
-        mnemonic = note.fields[mnemonicFieldIndex],
-        isSelected = true, // not used in this context, so defaulting to true
-        isReversed = false, // not used in this context, so defaulting to false
+fun generatedCardFromNote(note: Note): GeneratedCard =
+    GeneratedCard(
+        word = note.getItem("Word"),
+        meaning = note.getItem("Meaning"),
+        pronunciation = note.getItem("Pronunciation"),
+        mnemonic = note.getItem("Mnemonic"),
     )
-}

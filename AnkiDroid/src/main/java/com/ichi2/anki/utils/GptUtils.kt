@@ -255,21 +255,22 @@ object GptUtils {
     fun identifyErrorsOnCard(
         card: GeneratedCard,
         language: String,
-        onSuccess: (String) -> Unit,
+        onSuccess: (Boolean, String, GeneratedCard) -> Unit,
         onError: (String) -> Unit,
     ) {
         val prompt =
             """
             The following is a $language language learning flashcard:
             === BEGIN CARD ===
-            $card
+            WORD: ${card.word}
+            IPA: ${card.pronunciation}
+            MEANING: ${card.meaning}
             === END CARD ===
             
             Identify any incorrect information on the card, such as:
             - Incorrect word/phrase on the card
-            - Incorrect IPA transcription
+            - Incorrect IPA transcription (empty is fine. Broad transcription is fine)
             - Incorrect meaning/translation
-            - Incorrect usage explanation (but it's fine if this field is empty or used for a mnemonic)
             
             Respond with either "NO ERRORS" if everything is correct, or with your remarks in the following format:
             NAME_OF_WRONG_FIELD: [your remarks]
@@ -280,7 +281,19 @@ object GptUtils {
             prompt = prompt,
             onSuccess = { response ->
                 Timber.d("GPT response for identifying errors:\n$response")
-                onSuccess(response)
+                if (response.trim().replace("\"", "") == "NO ERRORS") {
+                    Timber.d("No errors found on card")
+                    onSuccess(false, response, card) // No errors, return the original card
+                } else {
+                    try {
+                        val updatedCard = parseSinglePartialLanguageCardResponse(response)
+                        Timber.d("Errors found on card, returning updated card: $updatedCard")
+                        onSuccess(true, response, updatedCard) // Return the updated card with errors fixed
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error parsing GPT response for identifying errors")
+                        onError("Error parsing GPT response: ${e.message}")
+                    }
+                }
             },
             onError = onError,
             model = ChatModel.GPT_5_MINI,
@@ -345,6 +358,39 @@ object GptUtils {
         } catch (e: Exception) {
             Timber.e(e, "Error parsing language cards response")
             onError("Error parsing GPT response: ${e.message}")
+        }
+    }
+
+    private fun parseSinglePartialLanguageCardResponse(response: String): GeneratedCard {
+        try {
+            val card = GeneratedCard("", "", "")
+            val lines = response.lines().map { it.trim() }
+
+            for (line in lines) {
+                when {
+                    line.startsWith("WORD:", ignoreCase = true) -> {
+                        card.word = line.substring(5).trim()
+                    }
+                    line.startsWith("IPA:", ignoreCase = true) -> {
+                        card.pronunciation = line.substring(4).trim()
+                    }
+                    line.startsWith("MEANING:", ignoreCase = true) -> {
+                        card.meaning = line.substring(8).trim()
+                    }
+                    line.startsWith("USAGE:", ignoreCase = true) -> {
+                        card.mnemonic = line.substring(6).trim()
+                    }
+                }
+            }
+
+            if (card.word.isNotEmpty() || card.meaning.isNotEmpty() || card.pronunciation.isNotEmpty()) {
+                return card
+            } else {
+                throw IllegalArgumentException("No valid fields found in the response")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error parsing language cards response")
+            throw IllegalArgumentException("Error parsing GPT response: ${e.message}")
         }
     }
 }

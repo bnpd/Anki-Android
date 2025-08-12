@@ -73,6 +73,7 @@ import com.ichi2.anki.common.time.TimeManager
 import com.ichi2.anki.libanki.Card
 import com.ichi2.anki.libanki.CardId
 import com.ichi2.anki.libanki.Collection
+import com.ichi2.anki.libanki.Note
 import com.ichi2.anki.libanki.QueueType
 import com.ichi2.anki.libanki.sched.Counts
 import com.ichi2.anki.libanki.sched.CurrentQueueState
@@ -148,6 +149,7 @@ open class Reviewer :
     AbstractFlashcardViewer(),
     ReviewerUi,
     BindingProcessor<ReviewerBinding, ViewerCommand> {
+    private var previousCardId: CardId? = null
     private var queueState: CurrentQueueState? = null
     private val customSchedulingKey = TimeManager.time.intTimeMS().toString()
     private var hasDrawerSwipeConflicts = false
@@ -1239,6 +1241,7 @@ open class Reviewer :
                 }
             }
         state?.timeboxReached?.let { dealWithTimeBox(it) }
+        previousCardId = currentCard?.id
         currentCard = state?.topCard
         queueState = state
         if (currentCard?.note != null) {
@@ -1254,6 +1257,9 @@ open class Reviewer :
             Timber.i("identify-errors has already been run on this note, skipping")
             return
         }
+        if (currentCardId == previousCardId) {
+            return
+        } // don't run linting on the same card immediately again after undo of "identify-errors-ran" tag
 
         var generatedCard: GeneratedCard
         try {
@@ -1270,24 +1276,67 @@ open class Reviewer :
         identifyErrorsOnCard(
             generatedCard,
             selectedDeckName,
-            onSuccess = { output ->
-                lifecycleScope.launch {
-                    note.tags.add("identify-errors-ran")
-                    withCol {
-                        @SuppressLint("CheckResult")
-                        updateNote(note, skipUndoEntry = true)
+            onSuccess = { errorsFound, response, remarksPerField ->
+                tagNoteAsLinted(note)
+                if (errorsFound) {
+                    if (note.getItem("Word") == currentCard?.note?.getItem("Word")) {
+                        Timber.i("identify-errors found errors on this card")
+                        showSnackbar("Errors: $response", Snackbar.LENGTH_INDEFINITE) {
+                            setAction("Edit") {
+                                lifecycleScope.launch {
+                                    note.setItem(
+                                        "Word",
+                                        note.getItem("Word") + "\n" + remarksPerField.word,
+                                    )
+                                    note.setItem(
+                                        "Meaning",
+                                        note.getItem("Meaning") + "\n" + remarksPerField.meaning,
+                                    )
+                                    note.setItem(
+                                        "Pronunciation",
+                                        note.getItem("Pronunciation") + "\n" + remarksPerField.pronunciation,
+                                    )
+                                    note.setItem(
+                                        "Mnemonic",
+                                        note.getItem("Mnemonic") + "\n" + remarksPerField.mnemonic,
+                                    )
+                                    withCol {
+                                        @SuppressLint("CheckResult")
+                                        updateNote(note, skipUndoEntry = false)
+                                    }
+                                }
+                                editCard()
+                            }
+                        }
+                    } else {
+                        // currentCard has changed since we started linting
+                        Timber.i("identify-errors found errors on a previous card")
+
+                        showSnackbar(
+                            "Previous card (${generatedCard.word}) errors: $response",
+                            Snackbar.LENGTH_INDEFINITE,
+                        )
                     }
                 }
-                showThemedToast(
-                    this,
-                    output,
-                    false,
-                )
             },
             onError = { error ->
                 Timber.w(error, "Error identifying Errors on card")
             },
         )
+    }
+
+    private fun tagNoteAsLinted(note: Note) {
+        lifecycleScope.launch {
+            note.tags.add("identify-errors-ran")
+            withCol {
+                @SuppressLint("CheckResult")
+                updateNote(
+                    note,
+                    skipUndoEntry = false,
+                ) // cannot skip undo entry because if we do, undo button results in
+                // "Nothing to undo" even though we did reviews before this
+            }
+        }
     }
 
     override suspend fun answerCardInner(rating: Rating) {
