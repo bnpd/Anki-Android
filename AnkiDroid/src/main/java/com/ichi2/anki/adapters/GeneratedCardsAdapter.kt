@@ -124,7 +124,6 @@ class GeneratedCardsAdapter(
                     if (wasFocused) {
                         editText.post {
                             editText.requestFocus()
-                            editText.setSelection(editText.text?.length ?: 0)
                         }
                     }
                 }
@@ -146,10 +145,18 @@ class GeneratedCardsAdapter(
         // Set initial values
         holder.checkboxSelect.isChecked = card.isSelected
         holder.checkboxReversed.isChecked = card.isReversed
-        holder.editWord.setText(card.word)
-        holder.editMeaning.setText(card.meaning)
-        holder.editPronunciation.setText(card.pronunciation)
-        holder.editMnemonic.setText(card.mnemonic)
+        if (holder.editWord.text.toString() != card.word) {
+            holder.editWord.setText(card.word)
+        }
+        if (holder.editMeaning.text.toString() != card.meaning) {
+            holder.editMeaning.setText(card.meaning)
+        }
+        if (holder.editPronunciation.text.toString() != card.pronunciation) {
+            holder.editPronunciation.setText(card.pronunciation)
+        }
+        if (holder.editMnemonic.text.toString() != card.mnemonic) {
+            holder.editMnemonic.setText(card.mnemonic)
+        }
 
         // Initially hide AI edit section and clear prompt
         holder.layoutAiEditSection.isVisible = false
