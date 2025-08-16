@@ -46,5 +46,4 @@
         android:summary="@string/pref_openai_card_lint_instructions_summary"
         android:defaultValue="@string/pref_openai_card_lint_instructions_default"
         app:useSimpleSummaryProvider="false"/>
-
 </PreferenceScreen>

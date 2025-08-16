@@ -16,19 +16,20 @@
 
 package com.ichi2.anki.adapters
 
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
-import android.widget.Toast
 import androidx.core.view.isVisible
-import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textfield.TextInputEditText
 import com.ichi2.anki.R
 import com.ichi2.anki.model.GeneratedCard
+import com.ichi2.anki.showThemedToast
 import com.ichi2.anki.utils.GptUtils
 
 /**
@@ -133,42 +134,150 @@ class GeneratedCardsAdapter(
             }
         }
 
-        // Set up text change listeners with position validation
+        // Set up text change listeners with position validation and focus handling
         holder.wordTextWatcher =
-            holder.editWord.addTextChangedListener { text ->
-                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
-                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+            object : TextWatcher {
+                var wasFocused = false
+
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
                 ) {
-                    card.word = text?.toString() ?: ""
+                    wasFocused = holder.editWord.hasFocus()
+                }
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) { /* Nit */ }
+
+                override fun afterTextChanged(s: Editable?) {
+                    if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                        holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                    ) {
+                        card.word = s?.toString() ?: ""
+                        if (wasFocused) {
+                            holder.editWord.post {
+                                holder.editWord.requestFocus()
+                                holder.editWord.setSelection(holder.editWord.text?.length ?: 0)
+                            }
+                        }
+                    }
                 }
             }
+        holder.editWord.addTextChangedListener(holder.wordTextWatcher)
 
         holder.meaningTextWatcher =
-            holder.editMeaning.addTextChangedListener { text ->
-                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
-                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+            object : TextWatcher {
+                var wasFocused = false
+
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
                 ) {
-                    card.meaning = text?.toString() ?: ""
+                    wasFocused = holder.editMeaning.hasFocus()
+                }
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) { /* Nit */ }
+
+                override fun afterTextChanged(s: Editable?) {
+                    if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                        holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                    ) {
+                        card.meaning = s?.toString() ?: ""
+                        if (wasFocused) {
+                            holder.editMeaning.post {
+                                holder.editMeaning.requestFocus()
+                                holder.editMeaning.setSelection(holder.editMeaning.text?.length ?: 0)
+                            }
+                        }
+                    }
                 }
             }
+        holder.editMeaning.addTextChangedListener(holder.meaningTextWatcher)
 
         holder.pronunciationTextWatcher =
-            holder.editPronunciation.addTextChangedListener { text ->
-                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
-                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+            object : TextWatcher {
+                var wasFocused = false
+
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
                 ) {
-                    card.pronunciation = text?.toString() ?: ""
+                    wasFocused = holder.editPronunciation.hasFocus()
+                }
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) { /* Nit */ }
+
+                override fun afterTextChanged(s: Editable?) {
+                    if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                        holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                    ) {
+                        card.pronunciation = s?.toString() ?: ""
+                        if (wasFocused) {
+                            holder.editPronunciation.post {
+                                holder.editPronunciation.requestFocus()
+                                holder.editPronunciation.setSelection(holder.editPronunciation.text?.length ?: 0)
+                            }
+                        }
+                    }
                 }
             }
+        holder.editPronunciation.addTextChangedListener(holder.pronunciationTextWatcher)
 
         holder.mnemonicTextWatcher =
-            holder.editMnemonic.addTextChangedListener { text ->
-                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
-                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+            object : TextWatcher {
+                var wasFocused = false
+
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
                 ) {
-                    card.mnemonic = text?.toString() ?: ""
+                    wasFocused = holder.editMnemonic.hasFocus()
+                }
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) { /* Nit */ }
+
+                override fun afterTextChanged(s: Editable?) {
+                    if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                        holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                    ) {
+                        card.mnemonic = s?.toString() ?: ""
+                        if (wasFocused) {
+                            holder.editMnemonic.post {
+                                holder.editMnemonic.requestFocus()
+                                holder.editMnemonic.setSelection(holder.editMnemonic.text?.length ?: 0)
+                            }
+                        }
+                    }
                 }
             }
+        holder.editMnemonic.addTextChangedListener(holder.mnemonicTextWatcher)
 
         // AI Edit Button Listener
         holder.buttonEditCardWithAi.setOnClickListener {
@@ -200,25 +309,24 @@ class GeneratedCardsAdapter(
                             card.meaning = updatedCard.meaning
                             card.pronunciation = updatedCard.pronunciation
                             card.mnemonic = updatedCard.mnemonic
-                            Toast
-                                .makeText(
-                                    holder.itemView.context,
-                                    "Card edited successfully!",
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                            showThemedToast(
+                                holder.itemView.context,
+                                "Card edited successfully!",
+                                true,
+                            )
                             holder.buttonSubmitAiPrompt.isEnabled = false
                             holder.buttonSubmitAiPrompt.text = "Request Edit"
                             holder.layoutAiEditSection.isVisible = false
                         },
                         onError = { error ->
-                            Toast
-                                .makeText(
-                                    holder.itemView.context,
-                                    "Error editing card: $error",
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                            showThemedToast(
+                                holder.itemView.context,
+                                "Error editing card: $error",
+                                true,
+                            )
                             holder.buttonSubmitAiPrompt.isEnabled = false
                             holder.buttonSubmitAiPrompt.text = "Request Edit"
+                            holder.layoutAiEditSection.isVisible = false
                         },
                     )
                 }
