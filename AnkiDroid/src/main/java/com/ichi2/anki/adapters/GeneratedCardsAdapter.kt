@@ -59,9 +59,9 @@ class GeneratedCardsAdapter(
 
         // AI Edit Views
         val buttonEditCardWithAi: Button = itemView.findViewById(R.id.button_edit_card_with_ai)
-        val layoutAiEditSection: LinearLayout = itemView.findViewById(R.id.ai_edit_section) // Updated ID
-        val editTextAiPrompt: TextInputEditText = itemView.findViewById(R.id.edit_ai_prompt) // Updated ID
-        val buttonSubmitAiPrompt: Button = itemView.findViewById(R.id.button_submit_ai_edit) // Updated ID
+        val layoutAiEditSection: LinearLayout = itemView.findViewById(R.id.ai_edit_section)
+        val editTextAiPrompt: TextInputEditText = itemView.findViewById(R.id.edit_ai_prompt)
+        val buttonSubmitAiPrompt: Button = itemView.findViewById(R.id.button_submit_ai_edit)
 
         // Track listeners for cleanup
         var wordTextWatcher: android.text.TextWatcher? = null
@@ -91,6 +91,45 @@ class GeneratedCardsAdapter(
                 .inflate(R.layout.item_generated_language_card, parent, false)
         return CardViewHolder(view)
     }
+
+    private fun createFocusRestoringTextWatcher(
+        holder: CardViewHolder,
+        editText: TextInputEditText,
+        callback: (String) -> Unit,
+    ): TextWatcher =
+        object : TextWatcher {
+            var wasFocused = false
+
+            override fun beforeTextChanged(
+                s: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int,
+            ) {
+                wasFocused = editText.hasFocus()
+            }
+
+            override fun onTextChanged(
+                s: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int,
+            ) { /* Nit */ }
+
+            override fun afterTextChanged(s: Editable?) {
+                if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
+                    holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
+                ) {
+                    callback(s?.toString() ?: "")
+                    if (wasFocused) {
+                        editText.post {
+                            editText.requestFocus()
+                            editText.setSelection(editText.text?.length ?: 0)
+                        }
+                    }
+                }
+            }
+        }
 
     override fun onBindViewHolder(
         holder: CardViewHolder,
@@ -136,146 +175,26 @@ class GeneratedCardsAdapter(
 
         // Set up text change listeners with position validation and focus handling
         holder.wordTextWatcher =
-            object : TextWatcher {
-                var wasFocused = false
-
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) {
-                    wasFocused = holder.editWord.hasFocus()
-                }
-
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) { /* Nit */ }
-
-                override fun afterTextChanged(s: Editable?) {
-                    if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
-                        holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
-                    ) {
-                        card.word = s?.toString() ?: ""
-                        if (wasFocused) {
-                            holder.editWord.post {
-                                holder.editWord.requestFocus()
-                                holder.editWord.setSelection(holder.editWord.text?.length ?: 0)
-                            }
-                        }
-                    }
-                }
+            createFocusRestoringTextWatcher(holder, holder.editWord) {
+                card.word = it
             }
         holder.editWord.addTextChangedListener(holder.wordTextWatcher)
 
         holder.meaningTextWatcher =
-            object : TextWatcher {
-                var wasFocused = false
-
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) {
-                    wasFocused = holder.editMeaning.hasFocus()
-                }
-
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) { /* Nit */ }
-
-                override fun afterTextChanged(s: Editable?) {
-                    if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
-                        holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
-                    ) {
-                        card.meaning = s?.toString() ?: ""
-                        if (wasFocused) {
-                            holder.editMeaning.post {
-                                holder.editMeaning.requestFocus()
-                                holder.editMeaning.setSelection(holder.editMeaning.text?.length ?: 0)
-                            }
-                        }
-                    }
-                }
+            createFocusRestoringTextWatcher(holder, holder.editMeaning) {
+                card.meaning = it
             }
         holder.editMeaning.addTextChangedListener(holder.meaningTextWatcher)
 
         holder.pronunciationTextWatcher =
-            object : TextWatcher {
-                var wasFocused = false
-
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) {
-                    wasFocused = holder.editPronunciation.hasFocus()
-                }
-
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) { /* Nit */ }
-
-                override fun afterTextChanged(s: Editable?) {
-                    if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
-                        holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
-                    ) {
-                        card.pronunciation = s?.toString() ?: ""
-                        if (wasFocused) {
-                            holder.editPronunciation.post {
-                                holder.editPronunciation.requestFocus()
-                                holder.editPronunciation.setSelection(holder.editPronunciation.text?.length ?: 0)
-                            }
-                        }
-                    }
-                }
+            createFocusRestoringTextWatcher(holder, holder.editPronunciation) {
+                card.pronunciation = it
             }
         holder.editPronunciation.addTextChangedListener(holder.pronunciationTextWatcher)
 
         holder.mnemonicTextWatcher =
-            object : TextWatcher {
-                var wasFocused = false
-
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) {
-                    wasFocused = holder.editMnemonic.hasFocus()
-                }
-
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) { /* Nit */ }
-
-                override fun afterTextChanged(s: Editable?) {
-                    if (holder.getAbsoluteAdapterPosition() != RecyclerView.NO_POSITION &&
-                        holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
-                    ) {
-                        card.mnemonic = s?.toString() ?: ""
-                        if (wasFocused) {
-                            holder.editMnemonic.post {
-                                holder.editMnemonic.requestFocus()
-                                holder.editMnemonic.setSelection(holder.editMnemonic.text?.length ?: 0)
-                            }
-                        }
-                    }
-                }
+            createFocusRestoringTextWatcher(holder, holder.editMnemonic) {
+                card.mnemonic = it
             }
         holder.editMnemonic.addTextChangedListener(holder.mnemonicTextWatcher)
 
