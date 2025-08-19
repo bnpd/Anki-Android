@@ -113,7 +113,7 @@
                         android:id="@+id/edit_word"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="text"
+                        android:inputType="textMultiLine"
                         android:maxLines="2" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -147,7 +147,7 @@
                         android:id="@+id/edit_meaning"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="text"
+                        android:inputType="textMultiLine"
                         android:maxLines="3" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -181,7 +181,7 @@
                         android:id="@+id/edit_pronunciation"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="text"
+                        android:inputType="textMultiLine"
                         android:maxLines="2"
                         android:fontFamily="monospace" />
 
