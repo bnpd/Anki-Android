@@ -141,7 +141,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="0.7"
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    android:hint="German translation">
+                    android:hint="Translation">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/edit_meaning"

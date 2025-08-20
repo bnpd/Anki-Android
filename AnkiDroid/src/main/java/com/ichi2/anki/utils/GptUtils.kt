@@ -177,6 +177,7 @@ object GptUtils {
             CARD 2:
             WORD: ...
             And so on. Make them useful for language learning with accurate translations and pronunciations.
+            For words which have multiple distinct, non-niche meanings, make a card for each meaning.
             Only provide the final response, following the instructions strictly. Do not ask for clarification or additional information.
             """.trimIndent()
         askGpt(
