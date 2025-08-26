@@ -48,13 +48,14 @@ class GenerateCardsActivity :
     BaseSnackbarBuilderProvider {
     override val baseSnackbarBuilder: SnackbarBuilder = { }
 
+    private lateinit var wordsInput: TextInputEditText
+    private lateinit var wordsInputSection: View
     private lateinit var topicInput: TextInputEditText
     private lateinit var topicInputSection: View
     private lateinit var cardCountSection: View
     private lateinit var btn5Cards: MaterialButton
     private lateinit var btn10Cards: MaterialButton
     private lateinit var btn20Cards: MaterialButton
-    private lateinit var btn50Cards: MaterialButton
     private lateinit var btnGenerate: MaterialButton
     private lateinit var progressBar: LinearProgressIndicator
     private lateinit var previewSection: View
@@ -99,13 +100,14 @@ class GenerateCardsActivity :
     }
 
     private fun initializeViews() {
+        wordsInput = findViewById(R.id.words_input)
+        wordsInputSection = findViewById(R.id.words_input_section)
         topicInput = findViewById(R.id.topic_input)
         topicInputSection = findViewById(R.id.topic_input_section)
         cardCountSection = findViewById(R.id.card_count_section)
         btn5Cards = findViewById(R.id.btn_5_cards)
         btn10Cards = findViewById(R.id.btn_10_cards)
         btn20Cards = findViewById(R.id.btn_20_cards)
-        btn50Cards = findViewById(R.id.btn_50_cards)
         btnGenerate = findViewById(R.id.btn_generate)
         progressBar = findViewById(R.id.progress_bar)
         previewSection = findViewById(R.id.preview_section)
@@ -120,12 +122,15 @@ class GenerateCardsActivity :
         topicInput.addTextChangedListener {
             updateGenerateButtonState()
         }
+        // Topic input listener
+        wordsInput.addTextChangedListener {
+            updateGenerateButtonState()
+        }
 
         // Card count selection buttons
         btn5Cards.setOnClickListener { selectCardCount(5, btn5Cards) }
         btn10Cards.setOnClickListener { selectCardCount(10, btn10Cards) }
         btn20Cards.setOnClickListener { selectCardCount(20, btn20Cards) }
-        btn50Cards.setOnClickListener { selectCardCount(50, btn50Cards) }
 
         // Generate button
         btnGenerate.setOnClickListener { generateCards() }
@@ -153,7 +158,7 @@ class GenerateCardsActivity :
         selectedCardCount = count
 
         // Reset all button styles
-        val buttons = listOf(btn5Cards, btn10Cards, btn20Cards, btn50Cards)
+        val buttons = listOf(btn5Cards, btn10Cards, btn20Cards)
         buttons.forEach { button ->
             button.isSelected = false
         }
@@ -165,20 +170,26 @@ class GenerateCardsActivity :
     }
 
     private fun updateGenerateButtonState() {
-        val hasTopicText = topicInput.text?.isNotBlank() == true
-        val hasSelectedCount = selectedCardCount > 0
-        btnGenerate.isEnabled = hasTopicText && hasSelectedCount
+        btnGenerate.isEnabled = wordsInput.text?.isNotBlank() == true || (topicInput.text?.isNotBlank() == true && selectedCardCount > 0)
     }
 
     private fun generateCards() {
+        val wordList =
+            wordsInput.text
+                ?.toString()
+                ?.trim()
+                ?.split('\n')
+        val wordListGiven = !wordList.isNullOrEmpty()
         val topic = topicInput.text?.toString()?.trim()
-        if (topic.isNullOrBlank()) {
-            showThemedToast(this, "Please enter a topic", true)
+        val topicGiven = !topic.isNullOrBlank() && selectedCardCount > 0
+
+        if (!wordListGiven && !topicGiven) {
+            showThemedToast(this, "Please provide words or topic and number of cards", true)
             return
         }
 
-        if (selectedCardCount == 0) {
-            showThemedToast(this, "Please select number of cards", true)
+        if (wordListGiven && topicGiven) {
+            showThemedToast(this, "Please provide only a list of word or only topic and number of cards", true)
             return
         }
 
@@ -186,7 +197,16 @@ class GenerateCardsActivity :
         btnGenerate.isEnabled = false
         // Make some space for preview
         cardCountSection.visibility = View.GONE
+        findViewById<View>(R.id.tv_or).visibility = View.GONE
+        wordsInputSection.visibility = View.GONE
 
+        if (wordListGiven) {
+            topicInputSection.visibility = View.GONE
+
+            generateCardsForWordList(wordList!!)
+            return
+        }
+        // else if (topicGiven):
         lifecycleScope.launch {
             val knownWords: List<String> =
                 try {
@@ -226,45 +246,49 @@ class GenerateCardsActivity :
 
             // Call the new GptUtils function with the list of known words.
             GptUtils.suggestNewVocab(
-                topic = topic,
+                topic = topic!!,
                 count = selectedCardCount,
                 knownWords = knownWords,
                 language = selectedDeckName,
                 onSuccess = { newWords ->
                     Timber.d("GPT Suggested new words: $newWords")
 
-                    // Display preview of new words
-                    generatedCards.clear()
-                    generatedCards.addAll(
-                        newWords.map {
-                            GeneratedCard(
-                                word = it,
-                                meaning = "",
-                                pronunciation = "",
-                            )
-                        },
-                    ) // Create partial cards
-                    cardsAdapter.notifyDataSetChanged()
-                    previewSection.visibility = View.VISIBLE
-
-                    // Now generate full card details for these words
-                    GptUtils.generateCardsForNewWords(
-                        words = newWords,
-                        language = selectedDeckName,
-                        nativeLanguage = "German",
-                        onSuccess = { languageCards ->
-                            handleGenerationSuccess(languageCards) // This will update the cards with full details
-                        },
-                        onError = { error ->
-                            handleGenerationError(error)
-                        },
-                    )
+                    generateCardsForWordList(newWords)
                 },
                 onError = { error ->
                     handleGenerationError(error)
                 },
             )
         }
+    }
+
+    private fun generateCardsForWordList(words: List<String>) {
+        // Display preview of new words
+        generatedCards.clear()
+        generatedCards.addAll(
+            words.map {
+                GeneratedCard(
+                    word = it,
+                    meaning = "",
+                    pronunciation = "",
+                )
+            },
+        ) // Create partial cards
+        cardsAdapter.notifyDataSetChanged()
+        previewSection.visibility = View.VISIBLE
+
+        // Now generate full card details for these words
+        GptUtils.generateCardsForNewWords(
+            words = words,
+            language = selectedDeckName,
+            nativeLanguage = "German",
+            onSuccess = { languageCards ->
+                handleGenerationSuccess(languageCards) // This will update the cards with full details
+            },
+            onError = { error ->
+                handleGenerationError(error)
+            },
+        )
     }
 
     private fun handleGenerationSuccess(languageCards: List<GeneratedCard>) {
@@ -279,6 +303,7 @@ class GenerateCardsActivity :
         showProgress(false)
         previewSection.visibility = View.VISIBLE
         updateApproveButtonState()
+        btnGenerate.text = "Regenerate"
         btnGenerate.isEnabled = true
 
         // make more space
@@ -289,6 +314,7 @@ class GenerateCardsActivity :
         Timber.e("Failed to generate flashcards: $error")
 
         showProgress(false)
+        btnGenerate.text = "Retry"
         btnGenerate.isEnabled = true
         topicInputSection.visibility = View.VISIBLE
         cardCountSection.visibility = View.VISIBLE
