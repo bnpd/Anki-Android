@@ -72,9 +72,9 @@ fun Activity.showSnackbar(
     @StringRes textResource: Int,
     duration: Int = Snackbar.LENGTH_LONG,
     snackbarBuilder: SnackbarBuilder? = null,
-) {
+): Snackbar? {
     val text = getText(textResource)
-    showSnackbar(text, duration, snackbarBuilder)
+    return showSnackbar(text, duration, snackbarBuilder)
 }
 
 /**
@@ -106,12 +106,12 @@ fun Activity.showSnackbar(
     text: CharSequence,
     duration: Int = Snackbar.LENGTH_LONG,
     snackbarBuilder: SnackbarBuilder? = null,
-) {
+): Snackbar? {
     val view: View? = findViewById(R.id.root_layout) as? CoordinatorLayout
 
     if (view != null) {
         val baseSnackbarBuilder = (this as? BaseSnackbarBuilderProvider)?.baseSnackbarBuilder
-        view.showSnackbar(text, duration) {
+        return view.showSnackbar(text, duration) {
             baseSnackbarBuilder?.invoke(this)
             snackbarBuilder?.invoke(this)
             Timber.d("displayed snackbar: '%s'", text)
@@ -128,6 +128,7 @@ fun Activity.showSnackbar(
             showThemedToast(this, text, false)
         }
     }
+    return null
 }
 
 /**
@@ -160,9 +161,9 @@ fun View.showSnackbar(
     @StringRes textResource: Int,
     duration: Int = Snackbar.LENGTH_LONG,
     snackbarBuilder: SnackbarBuilder? = null,
-) {
+): Snackbar {
     val text = resources.getText(textResource)
-    showSnackbar(text, duration, snackbarBuilder)
+    return showSnackbar(text, duration, snackbarBuilder)
 }
 
 /**
@@ -195,7 +196,7 @@ fun View.showSnackbar(
     text: CharSequence,
     duration: Int = Snackbar.LENGTH_LONG,
     snackbarBuilder: SnackbarBuilder? = null,
-) {
+): Snackbar {
     val snackbar = Snackbar.make(this, text, duration)
     snackbar.setMaxLines(4)
     snackbar.behavior = SwipeDismissBehaviorFix()
@@ -209,6 +210,7 @@ fun View.showSnackbar(
     }
 
     snackbar.show()
+    return snackbar
 }
 
 /**
@@ -241,9 +243,9 @@ fun Fragment.showSnackbar(
     text: CharSequence,
     duration: Int = Snackbar.LENGTH_LONG,
     snackbarBuilder: SnackbarBuilder? = null,
-) {
+): Snackbar? {
     val baseSnackbarBuilder = (this as? BaseSnackbarBuilderProvider)?.baseSnackbarBuilder
-    requireActivity().showSnackbar(text, duration) {
+    return requireActivity().showSnackbar(text, duration) {
         baseSnackbarBuilder?.invoke(this)
         snackbarBuilder?.invoke(this)
         Timber.d("displayed snackbar: '%s'", text)
@@ -274,9 +276,9 @@ fun DialogFragment.showSnackbar(
     text: CharSequence,
     duration: Int = Snackbar.LENGTH_LONG,
     snackbarBuilder: SnackbarBuilder? = null,
-) {
+): Snackbar? {
     val baseSnackbarBuilder = (this as? BaseSnackbarBuilderProvider)?.baseSnackbarBuilder
-    view?.showSnackbar(text, duration) {
+    return view?.showSnackbar(text, duration) {
         baseSnackbarBuilder?.invoke(this)
         snackbarBuilder?.invoke(this)
         Timber.d("displayed snackbar: '%s'", text)
@@ -315,9 +317,9 @@ fun Fragment.showSnackbar(
     @StringRes textResource: Int,
     duration: Int = Snackbar.LENGTH_LONG,
     snackbarBuilder: SnackbarBuilder? = null,
-) {
+): Snackbar? {
     val text = resources.getText(textResource)
-    showSnackbar(text, duration, snackbarBuilder)
+    return showSnackbar(text, duration, snackbarBuilder)
 }
 
 // **********************************************************************************************

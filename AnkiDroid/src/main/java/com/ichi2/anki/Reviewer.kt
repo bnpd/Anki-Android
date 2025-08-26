@@ -214,6 +214,7 @@ open class Reviewer :
     private var stopTimerOnAnswer = false
     private val actionButtons = ActionButtons()
     private lateinit var toolbar: Toolbar
+    private var currentLintResultSnackbar: Snackbar? = null
 
     @VisibleForTesting
     protected open lateinit var processor: BindingMap<ReviewerBinding, ViewerCommand>
@@ -1301,39 +1302,41 @@ open class Reviewer :
     }
 
     private fun showLintResultIfAny(note: Note) {
+        currentLintResultSnackbar?.dismiss()
         val lintResult = lintResults[note.id] ?: return // if not linted, return
 
         if (lintResult.completed) {
             if (lintResult.errorsFound) {
                 Timber.i("identify-errors found errors on this card")
-                showSnackbar("Errors: ${lintResult.response}", Snackbar.LENGTH_INDEFINITE) {
-                    setAction("Edit") {
-                        lifecycleScope.launch {
-                            note.setItem(
-                                "Word",
-                                note.getItem("Word") + "\n" + lintResult.remarksPerField!!.word,
-                            )
-                            note.setItem(
-                                "Meaning",
-                                note.getItem("Meaning") + "\n" + lintResult.remarksPerField.meaning,
-                            )
-                            note.setItem(
-                                "Pronunciation",
-                                note.getItem("Pronunciation") + "\n" + lintResult.remarksPerField.pronunciation,
-                            )
-                            note.setItem(
-                                "Mnemonic",
-                                note.getItem("Mnemonic") + "\n" + lintResult.remarksPerField.mnemonic,
-                            )
-                            withCol {
-                                @SuppressLint("CheckResult")
-                                updateNote(note, skipUndoEntry = false)
+                currentLintResultSnackbar =
+                    showSnackbar("${lintResult.response}", Snackbar.LENGTH_INDEFINITE) {
+                        setAction("Edit") {
+                            lifecycleScope.launch {
+                                note.setItem(
+                                    "Word",
+                                    note.getItem("Word") + "\n" + lintResult.remarksPerField!!.word,
+                                )
+                                note.setItem(
+                                    "Meaning",
+                                    note.getItem("Meaning") + "\n" + lintResult.remarksPerField.meaning,
+                                )
+                                note.setItem(
+                                    "Pronunciation",
+                                    note.getItem("Pronunciation") + "\n" + lintResult.remarksPerField.pronunciation,
+                                )
+                                note.setItem(
+                                    "Mnemonic",
+                                    note.getItem("Mnemonic") + "\n" + lintResult.remarksPerField.mnemonic,
+                                )
+                                withCol {
+                                    @SuppressLint("CheckResult")
+                                    updateNote(note, skipUndoEntry = false)
+                                }
+                                lintResults.remove(note.id) // remove the result so we don't show it again
+                                editCard()
                             }
-                            lintResults.remove(note.id) // remove the result so we don't show it again
-                            editCard()
                         }
                     }
-                }
             }
         }
     }
