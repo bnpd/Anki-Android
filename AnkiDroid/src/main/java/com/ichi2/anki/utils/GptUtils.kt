@@ -186,10 +186,10 @@ object GptUtils {
                 parseLanguageCardsResponse(response, onSuccess, onError)
             },
             onError = onError,
-            model = ChatModel.GPT_5,
+            model = ChatModel.GPT_5_MINI,
             reasoningEffort = ReasoningEffort.LOW,
             // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
-            serviceTier = ResponseCreateParams.ServiceTier.FLEX,
+            serviceTier = ResponseCreateParams.ServiceTier.DEFAULT,
         )
     }
 
