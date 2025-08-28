@@ -274,6 +274,7 @@ class GenerateCardsActivity :
                 )
             },
         ) // Create partial cards
+        cardsAdapter.itemsEnabled = false // Disable interaction until full details are loaded
         cardsAdapter.notifyDataSetChanged()
         previewSection.visibility = View.VISIBLE
 
@@ -298,6 +299,7 @@ class GenerateCardsActivity :
         generatedCards.clear()
         generatedCards.addAll(languageCards)
 
+        cardsAdapter.itemsEnabled = true
         cardsAdapter.notifyDataSetChanged()
 
         showProgress(false)
@@ -316,6 +318,7 @@ class GenerateCardsActivity :
         showProgress(false)
         btnGenerate.text = "Retry"
         btnGenerate.isEnabled = true
+        wordsInputSection.visibility = View.VISIBLE
         topicInputSection.visibility = View.VISIBLE
         cardCountSection.visibility = View.VISIBLE
         previewSection.visibility = View.GONE

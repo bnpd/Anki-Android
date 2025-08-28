@@ -158,6 +158,15 @@ class GeneratedCardsAdapter(
             holder.editMnemonic.setText(card.mnemonic)
         }
 
+        // Set enabled state based on itemsEnabled
+        holder.checkboxSelect.isEnabled = itemsEnabled
+        holder.checkboxReversed.isEnabled = itemsEnabled
+        holder.editWord.isEnabled = itemsEnabled
+        holder.editMeaning.isEnabled = itemsEnabled
+        holder.editPronunciation.isEnabled = itemsEnabled
+        holder.editMnemonic.isEnabled = itemsEnabled
+        holder.buttonEditCardWithAi.isEnabled = itemsEnabled
+
         // Initially hide AI edit section and clear prompt
         holder.layoutAiEditSection.isVisible = false
         holder.editTextAiPrompt.setText("")
@@ -261,4 +270,8 @@ class GeneratedCardsAdapter(
     }
 
     override fun getItemCount(): Int = cards.size
+
+    /** Whether descendant are enabled.
+     * IMPORTANT: Remember to call notifyDataSetChanged() after changing this value */
+    var itemsEnabled: Boolean = true
 }
