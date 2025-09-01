@@ -179,6 +179,7 @@ class GenerateCardsActivity :
                 ?.toString()
                 ?.trim()
                 ?.split('\n')
+                ?.filter { it.isNotBlank() }
         val wordListGiven = !wordList.isNullOrEmpty()
         val topic = topicInput.text?.toString()?.trim()
         val topicGiven = !topic.isNullOrBlank() && selectedCardCount > 0
