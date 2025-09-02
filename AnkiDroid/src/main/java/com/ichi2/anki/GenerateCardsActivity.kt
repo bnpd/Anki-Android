@@ -273,19 +273,26 @@ class GenerateCardsActivity :
             words.map { word ->
                 // Check if the word is in the frequency list
                 val wordInfo = freqMap[word]
-                if (wordInfo != null) {
-                    Timber.d("Word '$word' found in freqList at rank ${wordInfo.freq}")
-                } else {
-                    Timber.d("Word '$word' not found in freqList")
-                }
-                // Use existing card generation logic
+                val freqIndex = wordInfo?.freq
+                val (badgeLabel, badgeColor) =
+                    when {
+                        freqIndex == null -> "?" to "pink"
+                        freqIndex < 1000 -> "vital" to "purple"
+                        freqIndex < 2000 -> "basic" to "lightblue"
+                        freqIndex < 3000 -> "common" to "yellowgreen"
+                        freqIndex < 5000 -> "rare" to "coral"
+                        else -> "?" to "pink"
+                    }
                 GeneratedCard(
                     word = word,
                     meaning = wordInfo?.meaning ?: "",
                     pronunciation = wordInfo?.ipa ?: "",
                     mnemonic = wordInfo?.example ?: "",
-                    isSelected = false,
+                    isSelected = true,
                     isReversed = false,
+                    freqIndex = freqIndex,
+                    badgeLabel = badgeLabel,
+                    badgeColor = badgeColor,
                 )
             },
         )

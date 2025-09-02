@@ -63,6 +63,9 @@ class GeneratedCardsAdapter(
         val editTextAiPrompt: TextInputEditText = itemView.findViewById(R.id.edit_ai_prompt)
         val buttonSubmitAiPrompt: Button = itemView.findViewById(R.id.button_submit_ai_edit)
 
+        // Badge View
+        val badgeFreq: android.widget.TextView = itemView.findViewById(R.id.badge_freq)
+
         // Track listeners for cleanup
         var wordTextWatcher: android.text.TextWatcher? = null
         var meaningTextWatcher: android.text.TextWatcher? = null
@@ -170,6 +173,25 @@ class GeneratedCardsAdapter(
         // Initially hide AI edit section and clear prompt
         holder.layoutAiEditSection.isVisible = false
         holder.editTextAiPrompt.setText("")
+
+        // Badge logic
+        if (!card.badgeLabel.isNullOrBlank()) {
+            holder.badgeFreq.text = card.badgeLabel
+            holder.badgeFreq.visibility = View.VISIBLE
+            // Set badge background color
+            val color =
+                when (card.badgeColor) {
+                    "purple" -> 0xFF9C27B0.toInt()
+                    "lightblue" -> 0xFF03A9F4.toInt()
+                    "yellowgreen" -> 0xFF8BC34A.toInt()
+                    "coral" -> 0xFFFF7043.toInt()
+                    "pink" -> 0xFFE91E63.toInt()
+                    else -> 0xFFBDBDBD.toInt()
+                }
+            holder.badgeFreq.setBackgroundColor(color)
+        } else {
+            holder.badgeFreq.visibility = View.GONE
+        }
 
         // Set up checkbox listeners
         holder.checkboxSelect.setOnCheckedChangeListener { _, isChecked ->

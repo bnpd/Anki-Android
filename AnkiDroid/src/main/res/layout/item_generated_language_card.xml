@@ -102,22 +102,40 @@
                     android:minHeight="48dp"
                     android:paddingEnd="8dp" />
 
-                <com.google.android.material.textfield.TextInputLayout
+                <FrameLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="0.7"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    android:hint="Word or phrase">
+                    android:layout_weight="0.7">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/edit_word"
+                    <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textMultiLine"
-                        android:maxLines="2" />
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:hint="Word or phrase">
 
-                </com.google.android.material.textfield.TextInputLayout>
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_word"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textMultiLine"
+                            android:maxLines="2" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
+                    <TextView
+                        android:id="@+id/badge_freq"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end|center_vertical"
+                        android:paddingLeft="8dp"
+                        android:paddingRight="8dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:background="@drawable/badge_background"
+                        android:visibility="gone" />
+                </FrameLayout>
             </TableRow>
 
             <!-- Meaning row -->

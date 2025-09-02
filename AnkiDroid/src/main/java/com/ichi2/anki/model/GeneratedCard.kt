@@ -28,6 +28,10 @@ data class GeneratedCard(
     var mnemonic: String = "",
     var isSelected: Boolean = true,
     var isReversed: Boolean = false,
+    // Badge properties
+    var freqIndex: Int? = null,
+    var badgeLabel: String? = null,
+    var badgeColor: String? = null,
 ) {
     /**
      * Returns a string representation of the card, useful for debugging
