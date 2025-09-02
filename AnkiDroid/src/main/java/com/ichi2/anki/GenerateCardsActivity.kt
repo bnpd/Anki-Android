@@ -273,16 +273,6 @@ class GenerateCardsActivity :
             words.map { word ->
                 // Check if the word is in the frequency list
                 val wordInfo = freqMap[word]
-                val freqIndex = wordInfo?.freq
-                val (badgeLabel, badgeColor) =
-                    when {
-                        freqIndex == null -> "?" to "pink"
-                        freqIndex < 1000 -> "vital" to "purple"
-                        freqIndex < 2000 -> "basic" to "lightblue"
-                        freqIndex < 3000 -> "common" to "yellowgreen"
-                        freqIndex < 5000 -> "rare" to "coral"
-                        else -> "?" to "pink"
-                    }
                 GeneratedCard(
                     word = word,
                     meaning = wordInfo?.meaning ?: "",
@@ -290,9 +280,7 @@ class GenerateCardsActivity :
                     mnemonic = wordInfo?.example ?: "",
                     isSelected = true,
                     isReversed = false,
-                    freqIndex = freqIndex,
-                    badgeLabel = badgeLabel,
-                    badgeColor = badgeColor,
+                    freqIndex = wordInfo?.freq,
                 )
             },
         )

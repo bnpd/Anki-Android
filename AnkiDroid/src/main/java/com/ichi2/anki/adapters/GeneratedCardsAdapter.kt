@@ -174,24 +174,19 @@ class GeneratedCardsAdapter(
         holder.layoutAiEditSection.isVisible = false
         holder.editTextAiPrompt.setText("")
 
-        // Badge logic
-        if (!card.badgeLabel.isNullOrBlank()) {
-            holder.badgeFreq.text = card.badgeLabel
-            holder.badgeFreq.visibility = View.VISIBLE
-            // Set badge background color
-            val color =
-                when (card.badgeColor) {
-                    "purple" -> 0xFF9C27B0.toInt()
-                    "lightblue" -> 0xFF03A9F4.toInt()
-                    "yellowgreen" -> 0xFF8BC34A.toInt()
-                    "coral" -> 0xFFFF7043.toInt()
-                    "pink" -> 0xFFE91E63.toInt()
-                    else -> 0xFFBDBDBD.toInt()
-                }
-            holder.badgeFreq.setBackgroundColor(color)
-        } else {
-            holder.badgeFreq.visibility = View.GONE
-        }
+        // Badge logic (moved here from model)
+        val (badgeLabel, badgeColor) =
+            when {
+                card.freqIndex == null -> "?" to 0xFFE91E63.toInt() // pink
+                card.freqIndex!! < 1000 -> "vital" to 0xFF9C27B0.toInt() // purple
+                card.freqIndex!! < 2000 -> "basic" to 0xFF03A9F4.toInt() // lightblue
+                card.freqIndex!! < 3000 -> "common" to 0xFF8BC34A.toInt() // yellowgreen
+                card.freqIndex!! < 5000 -> "rare" to 0xFFFF7043.toInt() // coral
+                else -> "?" to 0xFFE91E63.toInt() // pink
+            }
+        holder.badgeFreq.text = badgeLabel
+        holder.badgeFreq.visibility = View.VISIBLE
+        holder.badgeFreq.setBackgroundColor(badgeColor)
 
         // Set up checkbox listeners
         holder.checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
