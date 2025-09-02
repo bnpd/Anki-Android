@@ -292,7 +292,7 @@ class GenerateCardsActivity :
 
         // Now generate full card details for the words not found in freqList
         if (cardsLeftToGenerate.isEmpty()) {
-            handleGenerationSuccess(previewedCards)
+            handleGenerationSuccess(emptyList())
         } else {
             GptUtils.generateCardsForNewWords(
                 words = cardsLeftToGenerate,
