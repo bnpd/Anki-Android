@@ -67,7 +67,7 @@ class GenerateCardsActivity :
     private var selectedCardCount = 0
     private lateinit var selectedDeckName: String
     private lateinit var cardsAdapter: GeneratedCardsAdapter
-    private val generatedCards = mutableListOf<GeneratedCard>()
+    private val previewedCards = mutableListOf<GeneratedCard>()
 
     companion object {
         fun getIntent(context: Context): Intent = Intent(context, GenerateCardsActivity::class.java)
@@ -146,7 +146,7 @@ class GenerateCardsActivity :
     }
 
     private fun setupRecyclerView() {
-        cardsAdapter = GeneratedCardsAdapter(generatedCards, selectedDeckName) { updateApproveButtonState() }
+        cardsAdapter = GeneratedCardsAdapter(previewedCards, selectedDeckName) { updateApproveButtonState() }
         cardsRecyclerView.layoutManager = LinearLayoutManager(this)
         cardsRecyclerView.adapter = cardsAdapter
     }
@@ -264,41 +264,63 @@ class GenerateCardsActivity :
     }
 
     private fun generateCardsForWordList(words: List<String>) {
+        // Load frequency list for the selected language (e.g., "Thai")
+        val freqMap = FreqListUtils.loadFreqList(this, selectedDeckName)
+
         // Display preview of new words
-        generatedCards.clear()
-        generatedCards.addAll(
-            words.map {
+        previewedCards.clear()
+        previewedCards.addAll(
+            words.map { word ->
+                // Check if the word is in the frequency list
+                val wordInfo = freqMap[word]
+                if (wordInfo != null) {
+                    Timber.d("Word '$word' found in freqList at rank ${wordInfo.freq}")
+                } else {
+                    Timber.d("Word '$word' not found in freqList")
+                }
+                // Use existing card generation logic
                 GeneratedCard(
-                    word = it,
-                    meaning = "",
-                    pronunciation = "",
+                    word = word,
+                    meaning = wordInfo?.meaning ?: "",
+                    pronunciation = wordInfo?.ipa ?: "",
+                    mnemonic = wordInfo?.example ?: "",
+                    isSelected = false,
+                    isReversed = false,
                 )
             },
-        ) // Create partial cards
+        )
         cardsAdapter.itemsEnabled = false // Disable interaction until full details are loaded
         cardsAdapter.notifyDataSetChanged()
         previewSection.visibility = View.VISIBLE
 
-        // Now generate full card details for these words
-        GptUtils.generateCardsForNewWords(
-            words = words,
-            language = selectedDeckName,
-            nativeLanguage = "German",
-            onSuccess = { languageCards ->
-                handleGenerationSuccess(languageCards) // This will update the cards with full details
-            },
-            onError = { error ->
-                handleGenerationError(error)
-            },
-        )
+        val cardsLeftToGenerate = previewedCards.filter { it.meaning.isEmpty() }.map { it.word }
+
+        // Now generate full card details for the words not found in freqList
+        if (cardsLeftToGenerate.isEmpty()) {
+            handleGenerationSuccess(previewedCards)
+        } else {
+            GptUtils.generateCardsForNewWords(
+                words = cardsLeftToGenerate,
+                language = selectedDeckName,
+                nativeLanguage = "German",
+                onSuccess = { languageCards ->
+                    handleGenerationSuccess(languageCards) // This will update the cards with full details
+                },
+                onError = { error ->
+                    handleGenerationError(error)
+                },
+            )
+        }
     }
 
-    private fun handleGenerationSuccess(languageCards: List<GeneratedCard>) {
-        Timber.d("Generated ${languageCards.size} language cards successfully")
+    private fun handleGenerationSuccess(generatedCards: List<GeneratedCard>) {
+        Timber.d("Generated ${generatedCards.size} language cards successfully")
 
-        // Clear the partial cards and add the full language cards
-        generatedCards.clear()
-        generatedCards.addAll(languageCards)
+        // Merge generated cards with any existing cards that had meanings from freqList
+        val completeCards = previewedCards.filter { it.meaning.isNotEmpty() }
+        previewedCards.clear()
+        previewedCards.addAll(completeCards)
+        previewedCards.addAll(generatedCards)
 
         cardsAdapter.itemsEnabled = true
         cardsAdapter.notifyDataSetChanged()
@@ -332,10 +354,10 @@ class GenerateCardsActivity :
     }
 
     private fun toggleSelectAll() {
-        val allSelected = generatedCards.all { it.isSelected }
+        val allSelected = previewedCards.all { it.isSelected }
         val newSelectionState = !allSelected
 
-        generatedCards.forEach { it.isSelected = newSelectionState }
+        previewedCards.forEach { it.isSelected = newSelectionState }
         cardsAdapter.notifyDataSetChanged()
 
         btnSelectAll.text = if (newSelectionState) "Deselect All" else "Select All"
@@ -343,17 +365,17 @@ class GenerateCardsActivity :
     }
 
     private fun toggleReverseAll() {
-        val allReversed = generatedCards.all { it.isReversed }
+        val allReversed = previewedCards.all { it.isReversed }
         val newReversedState = !allReversed
 
-        generatedCards.forEach { it.isReversed = newReversedState }
+        previewedCards.forEach { it.isReversed = newReversedState }
         cardsAdapter.notifyDataSetChanged()
 
         btnReverseAll.text = if (newReversedState) "Unreverse All" else "Reverse All"
     }
 
     private fun updateApproveButtonState() {
-        val selectedCount = generatedCards.count { it.isSelected }
+        val selectedCount = previewedCards.count { it.isSelected }
         btnApproveSelected.isEnabled = selectedCount > 0
         btnApproveSelected.text =
             if (selectedCount > 0) {
@@ -363,16 +385,16 @@ class GenerateCardsActivity :
             }
 
         // Update select all button text
-        val allSelected = generatedCards.isNotEmpty() && generatedCards.all { it.isSelected }
+        val allSelected = previewedCards.isNotEmpty() && previewedCards.all { it.isSelected }
         btnSelectAll.text = if (allSelected) "Deselect All" else "Select All"
 
         // Update reverse all button text
-        val allReversed = generatedCards.isNotEmpty() && generatedCards.all { it.isReversed }
+        val allReversed = previewedCards.isNotEmpty() && previewedCards.all { it.isReversed }
         btnReverseAll.text = if (allReversed) "Unreverse All" else "Reverse All"
     }
 
     private fun approveSelectedCards() {
-        val selectedCards = generatedCards.filter { it.isSelected }
+        val selectedCards = previewedCards.filter { it.isSelected }
 
         if (selectedCards.isEmpty()) {
             showThemedToast(this, "No cards selected", true)
