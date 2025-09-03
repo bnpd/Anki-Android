@@ -68,6 +68,7 @@ class GenerateCardsActivity :
     private lateinit var selectedDeckName: String
     private lateinit var cardsAdapter: GeneratedCardsAdapter
     private val previewedCards = mutableListOf<GeneratedCard>()
+    private var freqMap: Map<String, Word>? = null
 
     companion object {
         fun getIntent(context: Context): Intent = Intent(context, GenerateCardsActivity::class.java)
@@ -87,8 +88,9 @@ class GenerateCardsActivity :
                     decks.name(decks.selected())
                 }
 
-            // RecyclerView setup should be done after we have the deck name
+            // RecyclerView and freqMap setup should be done after we have the deck name
             setupRecyclerView()
+            initializeFreqMapAsync()
         }
     }
 
@@ -149,6 +151,17 @@ class GenerateCardsActivity :
         cardsAdapter = GeneratedCardsAdapter(previewedCards, selectedDeckName) { updateApproveButtonState() }
         cardsRecyclerView.layoutManager = LinearLayoutManager(this)
         cardsRecyclerView.adapter = cardsAdapter
+    }
+
+    private fun initializeFreqMapAsync() {
+        lifecycleScope.launch {
+            // Ensure selectedDeckName is initialized before proceeding
+            if (::selectedDeckName.isInitialized) {
+                freqMap = FreqListUtils.loadFreqList(this@GenerateCardsActivity, selectedDeckName)
+            } else {
+                Timber.e("selectedDeckName not initialized before attempting to load frequency map.")
+            }
+        }
     }
 
     private fun selectCardCount(
@@ -264,15 +277,12 @@ class GenerateCardsActivity :
     }
 
     private fun generateCardsForWordList(words: List<String>) {
-        // Load frequency list for the selected language (e.g., "Thai")
-        val freqMap = FreqListUtils.loadFreqList(this, selectedDeckName)
-
         // Display preview of new words
         previewedCards.clear()
         previewedCards.addAll(
             words.map { word ->
                 // Check if the word is in the frequency list
-                val wordInfo = freqMap[word]
+                val wordInfo = freqMap?.get(word)
                 GeneratedCard(
                     word = word,
                     meaning = wordInfo?.meaning ?: "",
@@ -310,6 +320,13 @@ class GenerateCardsActivity :
 
     private fun handleGenerationSuccess(generatedCards: List<GeneratedCard>) {
         Timber.d("Generated ${generatedCards.size} language cards successfully")
+
+        // try again to find generated cards in freq list - gpt might have added different words
+        for (card in generatedCards.listIterator()) {
+            freqMap?.get(card.word)?.let { wordInfo ->
+                card.freqIndex = wordInfo.freq
+            }
+        }
 
         // Merge generated cards with any existing cards that had meanings from freqList
         val completeCards = previewedCards.filter { it.meaning.isNotEmpty() }

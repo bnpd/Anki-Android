@@ -16,12 +16,12 @@ object FreqListUtils {
      * Each line: word\t[ipa]\t[meaning]\t[example]
      * @param context Context
      * @param lang Language code or name (e.g., "Thai")
-     * @return HashMap mapping word to Word object
+     * @return HashMap mapping word to Word object, or null if freqlist not found
      */
     fun loadFreqList(
         context: android.content.Context,
         lang: String,
-    ): HashMap<String, Word> {
+    ): HashMap<String, Word>? {
         val freqMap = HashMap<String, Word>()
         val assetPath = "freqLists/$lang.tsv"
         try {
@@ -45,6 +45,7 @@ object FreqListUtils {
         } catch (e: Exception) {
             // Log or handle error as needed
             Timber.e(e, "Error loading freq list: $assetPath")
+            return null
         }
         return freqMap
     }
