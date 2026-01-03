@@ -37,7 +37,7 @@ import com.ichi2.anki.utils.GptUtils
  * Allows users to edit card content and select/deselect cards for approval
  */
 class GeneratedCardsAdapter(
-    private val cards: List<GeneratedCard>,
+    private val cards: MutableList<GeneratedCard>,
     private val selectedDeckName: String,
     private val onSelectionChanged: () -> Unit,
 ) : RecyclerView.Adapter<GeneratedCardsAdapter.CardViewHolder>() {
@@ -60,6 +60,7 @@ class GeneratedCardsAdapter(
 
         // AI Edit Views
         val buttonEditCardWithAi: Button = itemView.findViewById(R.id.button_edit_card_with_ai)
+        val buttonDuplicate: Button = itemView.findViewById(R.id.button_duplicate_generated_card)
         val buttonTranslateUsage: Button = itemView.findViewById(R.id.button_translate_usage)
         val layoutAiEditSection: LinearLayout = itemView.findViewById(R.id.ai_edit_section)
         val editTextAiPrompt: TextInputEditText = itemView.findViewById(R.id.edit_ai_prompt)
@@ -84,6 +85,7 @@ class GeneratedCardsAdapter(
             checkboxSelect.setOnCheckedChangeListener(null)
             checkboxReversed.setOnCheckedChangeListener(null)
             buttonEditCardWithAi.setOnClickListener(null)
+            buttonDuplicate.setOnClickListener(null)
             buttonSubmitAiPrompt.setOnClickListener(null)
             buttonTranslateUsage.setOnClickListener(null)
         }
@@ -178,6 +180,7 @@ class GeneratedCardsAdapter(
         holder.editUsage.isEnabled = itemsEnabled
         holder.editMnemonic.isEnabled = itemsEnabled
         holder.buttonEditCardWithAi.isEnabled = itemsEnabled
+        holder.buttonDuplicate.isEnabled = itemsEnabled
 
         // Initially hide AI edit section and clear prompt
         holder.layoutAiEditSection.isVisible = false
@@ -250,6 +253,16 @@ class GeneratedCardsAdapter(
         holder.buttonEditCardWithAi.setOnClickListener {
             // Toggle visibility of the AI edit section
             holder.layoutAiEditSection.isVisible = !holder.layoutAiEditSection.isVisible
+        }
+        holder.buttonDuplicate.setOnClickListener {
+            val currentPosition = holder.getAbsoluteAdapterPosition()
+            if (currentPosition != RecyclerView.NO_POSITION) {
+                val cardToDuplicate = cards[currentPosition]
+                val duplicatedCard = cardToDuplicate.copy()
+                cards.add(currentPosition + 1, duplicatedCard)
+                notifyItemInserted(currentPosition + 1)
+                onSelectionChanged()
+            }
         }
         holder.buttonTranslateUsage.setOnClickListener {
             val currentPosition = holder.getAbsoluteAdapterPosition()
