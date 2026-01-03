@@ -11,8 +11,7 @@
  *  PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along with
- *  this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ *  this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 package com.ichi2.anki.adapters
 
@@ -140,6 +139,28 @@ class GeneratedCardsAdapter(
             }
         }
 
+    private fun updateCardVisibility(
+        holder: CardViewHolder,
+        isSelected: Boolean,
+    ) {
+        val visibility = if (isSelected) View.VISIBLE else View.GONE
+
+        // Logic to show/hide views based on selection. Word and Meaning are always visible.
+        holder.editPronunciation.visibility = visibility
+        holder.editMnemonic.visibility = visibility
+        holder.editUsage.visibility = visibility
+        holder.buttonDuplicate.visibility = visibility
+        holder.buttonEditCardWithAi.visibility = visibility
+        holder.checkboxReversed.visibility = visibility
+        holder.buttonTranslateUsage.visibility = visibility
+        holder.badgeFreq.visibility = visibility
+
+        // If a card is not selected, the AI edit section must be hidden.
+        if (!isSelected) {
+            holder.layoutAiEditSection.visibility = View.GONE
+        }
+    }
+
     override fun onBindViewHolder(
         holder: CardViewHolder,
         position: Int,
@@ -171,6 +192,8 @@ class GeneratedCardsAdapter(
             holder.editUsage.setText(card.usage)
         }
 
+        updateCardVisibility(holder, card.isSelected)
+
         // Set enabled state based on itemsEnabled
         holder.checkboxSelect.isEnabled = itemsEnabled
         holder.checkboxReversed.isEnabled = itemsEnabled
@@ -197,7 +220,6 @@ class GeneratedCardsAdapter(
                 else -> "?" to 0xFFE91E63.toInt() // pink
             }
         holder.badgeFreq.text = badgeLabel
-        holder.badgeFreq.visibility = View.VISIBLE
         holder.badgeFreq.setBackgroundColor(badgeColor)
 
         // Set up checkbox listeners
@@ -206,6 +228,7 @@ class GeneratedCardsAdapter(
                 holder.itemView.getTag(R.id.view_holder_tag) as Int == holder.getAbsoluteAdapterPosition()
             ) {
                 card.isSelected = isChecked
+                updateCardVisibility(holder, isChecked)
                 onSelectionChanged()
             }
         }
