@@ -176,31 +176,6 @@
                 </com.google.android.material.textfield.TextInputLayout>
 
             </TableRow>
-            
-            <!-- Usage row -->
-            <TableRow
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp">
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="0.7"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    android:hint="Usage / Example">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/edit_usage"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textMultiLine"
-                        android:maxLines="4"
-                        android:minLines="1" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-            </TableRow>
 
             <!-- Mnemonic row -->
             <TableRow
@@ -216,6 +191,31 @@
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/edit_mnemonic"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine"
+                        android:maxLines="4"
+                        android:minLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </TableRow>
+
+            <!-- Usage row -->
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.7"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:hint="Usage / Example">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_usage"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textMultiLine"
