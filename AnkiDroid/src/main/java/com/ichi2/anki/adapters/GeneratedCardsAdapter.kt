@@ -195,15 +195,16 @@ class GeneratedCardsAdapter(
         updateCardVisibility(holder, card.isSelected)
 
         // Set enabled state based on itemsEnabled
-        holder.checkboxSelect.isEnabled = itemsEnabled
-        holder.checkboxReversed.isEnabled = itemsEnabled
-        holder.editWord.isEnabled = itemsEnabled
-        holder.editMeaning.isEnabled = itemsEnabled
-        holder.editPronunciation.isEnabled = itemsEnabled
-        holder.editUsage.isEnabled = itemsEnabled
-        holder.editMnemonic.isEnabled = itemsEnabled
-        holder.buttonEditCardWithAi.isEnabled = itemsEnabled
-        holder.buttonDuplicate.isEnabled = itemsEnabled
+        val canEdit = itemsEnabled || card.meaning != "" // Allow editing card which were found in freqMap
+        holder.checkboxSelect.isEnabled = canEdit
+        holder.checkboxReversed.isEnabled = canEdit
+        holder.editWord.isEnabled = canEdit
+        holder.editMeaning.isEnabled = canEdit
+        holder.editPronunciation.isEnabled = canEdit
+        holder.editUsage.isEnabled = canEdit
+        holder.editMnemonic.isEnabled = canEdit
+        holder.buttonEditCardWithAi.isEnabled = canEdit
+        holder.buttonDuplicate.isEnabled = canEdit
 
         // Initially hide AI edit section and clear prompt
         holder.layoutAiEditSection.isVisible = false
