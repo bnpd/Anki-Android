@@ -60,6 +60,7 @@ class GeneratedCardsAdapter(
 
         // AI Edit Views
         val buttonEditCardWithAi: Button = itemView.findViewById(R.id.button_edit_card_with_ai)
+        val buttonTranslateUsage: Button = itemView.findViewById(R.id.button_translate_usage)
         val layoutAiEditSection: LinearLayout = itemView.findViewById(R.id.ai_edit_section)
         val editTextAiPrompt: TextInputEditText = itemView.findViewById(R.id.edit_ai_prompt)
         val buttonSubmitAiPrompt: Button = itemView.findViewById(R.id.button_submit_ai_edit)
@@ -84,6 +85,7 @@ class GeneratedCardsAdapter(
             checkboxReversed.setOnCheckedChangeListener(null)
             buttonEditCardWithAi.setOnClickListener(null)
             buttonSubmitAiPrompt.setOnClickListener(null)
+            buttonTranslateUsage.setOnClickListener(null)
         }
     }
 
@@ -248,6 +250,41 @@ class GeneratedCardsAdapter(
         holder.buttonEditCardWithAi.setOnClickListener {
             // Toggle visibility of the AI edit section
             holder.layoutAiEditSection.isVisible = !holder.layoutAiEditSection.isVisible
+        }
+        holder.buttonTranslateUsage.setOnClickListener {
+            val currentPosition = holder.getAbsoluteAdapterPosition()
+            if (currentPosition != RecyclerView.NO_POSITION &&
+                holder.itemView.getTag(R.id.view_holder_tag) as Int == currentPosition
+            ) {
+                val prompt = "Add a translation to the USAGE field, after a dash"
+                holder.buttonTranslateUsage.isEnabled = false
+                holder.buttonTranslateUsage.text = "..."
+
+                GptUtils.editCard(
+                    card,
+                    prompt,
+                    selectedDeckName,
+                    onSuccess = { updatedCard ->
+                        // Update the card in the adapter
+                        card.usage = updatedCard.usage
+                        showThemedToast(
+                            holder.itemView.context,
+                            "Translated successfully!",
+                            true,
+                        )
+                        holder.buttonTranslateUsage.visibility = View.GONE
+                    },
+                    onError = { error ->
+                        showThemedToast(
+                            holder.itemView.context,
+                            "Error editing card: $error",
+                            true,
+                        )
+                        holder.buttonTranslateUsage.isEnabled = true
+                        holder.buttonTranslateUsage.text = "Translate"
+                    },
+                )
+            }
         }
 
         // AI Submit Button Listener
