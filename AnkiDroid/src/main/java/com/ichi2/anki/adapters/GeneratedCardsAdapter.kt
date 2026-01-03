@@ -273,6 +273,7 @@ class GeneratedCardsAdapter(
                             true,
                         )
                         holder.buttonTranslateUsage.visibility = View.GONE
+                        holder.editUsage.setPadding(0, 0, 0, 0)
                     },
                     onError = { error ->
                         showThemedToast(
