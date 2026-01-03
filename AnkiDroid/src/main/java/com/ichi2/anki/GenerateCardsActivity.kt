@@ -282,9 +282,10 @@ class GenerateCardsActivity :
         previewedCards.addAll(
             words.map { word ->
                 // Check if the word is in the frequency list
-                val wordInfo = freqMap?.get(word)
+                val trimmedWord = word.trim()
+                val wordInfo = freqMap?.get(trimmedWord)
                 GeneratedCard(
-                    word = word,
+                    word = trimmedWord,
                     meaning = wordInfo?.meaning ?: "",
                     pronunciation = wordInfo?.ipa ?: "",
                     usage = wordInfo?.example ?: "",
