@@ -287,7 +287,7 @@ class GenerateCardsActivity :
                     word = word,
                     meaning = wordInfo?.meaning ?: "",
                     pronunciation = wordInfo?.ipa ?: "",
-                    mnemonic = wordInfo?.example ?: "",
+                    usage = wordInfo?.example ?: "",
                     isSelected = true,
                     isReversed = false,
                     freqIndex = wordInfo?.freq,
@@ -463,6 +463,9 @@ class GenerateCardsActivity :
                                         if (fields.contains("Mnemonic") && generatedCard.mnemonic.isNotEmpty()) {
                                             note.setItem("Mnemonic", generatedCard.mnemonic)
                                         }
+                                        if (fields.contains("Usage") && generatedCard.usage.isNotEmpty()) {
+                                            note.setItem("Usage", generatedCard.usage)
+                                        }
                                     }
                                     fields.contains("Front") && fields.contains("Back") -> {
                                         // Fallback to basic Front/Back format
@@ -473,6 +476,9 @@ class GenerateCardsActivity :
                                                 append("\n\nPronunciation: ${generatedCard.pronunciation}")
                                                 if (generatedCard.mnemonic.isNotEmpty()) {
                                                     append("\nMnemonic: ${generatedCard.mnemonic}")
+                                                }
+                                                if (generatedCard.usage.isNotEmpty()) {
+                                                    append("\nUsage: ${generatedCard.usage}")
                                                 }
                                             }
                                         note.setItem("Back", backContent)
@@ -493,6 +499,9 @@ class GenerateCardsActivity :
                                                     append("\n${generatedCard.pronunciation}")
                                                     if (generatedCard.mnemonic.isNotEmpty()) {
                                                         append("\n${generatedCard.mnemonic}")
+                                                    }
+                                                    if (generatedCard.usage.isNotEmpty()) {
+                                                        append("\n${generatedCard.usage}")
                                                     }
                                                 }
                                             note.setItem(fields[1], backContent)

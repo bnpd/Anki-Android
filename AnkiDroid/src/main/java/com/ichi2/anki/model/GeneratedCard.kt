@@ -26,6 +26,7 @@ data class GeneratedCard(
     var meaning: String,
     var pronunciation: String,
     var mnemonic: String = "",
+    var usage: String = "",
     var isSelected: Boolean = true,
     var isReversed: Boolean = false,
     var freqIndex: Int? = null,
@@ -38,7 +39,8 @@ data class GeneratedCard(
         WORD: $word
         IPA: $pronunciation
         MEANING: $meaning
-        USAGE: $mnemonic
+        MNEMONIC: $mnemonic
+        USAGE: $usage
         """.trimIndent()
 }
 
@@ -48,4 +50,5 @@ fun generatedCardFromNote(note: Note): GeneratedCard =
         meaning = note.getItem("Meaning"),
         pronunciation = note.getItem("Pronunciation"),
         mnemonic = note.getItem("Mnemonic"),
+        usage = note.getItem("Usage"),
     )

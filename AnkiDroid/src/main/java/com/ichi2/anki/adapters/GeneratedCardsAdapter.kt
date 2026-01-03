@@ -55,6 +55,7 @@ class GeneratedCardsAdapter(
         val editWord: TextInputEditText = itemView.findViewById(R.id.edit_word)
         val editMeaning: TextInputEditText = itemView.findViewById(R.id.edit_meaning)
         val editPronunciation: TextInputEditText = itemView.findViewById(R.id.edit_pronunciation)
+        val editUsage: TextInputEditText = itemView.findViewById(R.id.edit_usage)
         val editMnemonic: TextInputEditText = itemView.findViewById(R.id.edit_mnemonic)
 
         // AI Edit Views
@@ -71,12 +72,14 @@ class GeneratedCardsAdapter(
         var meaningTextWatcher: android.text.TextWatcher? = null
         var pronunciationTextWatcher: android.text.TextWatcher? = null
         var mnemonicTextWatcher: android.text.TextWatcher? = null
+        var usageTextWatcher: android.text.TextWatcher? = null
 
         fun cleanup() {
             wordTextWatcher?.let { editWord.removeTextChangedListener(it) }
             meaningTextWatcher?.let { editMeaning.removeTextChangedListener(it) }
             pronunciationTextWatcher?.let { editPronunciation.removeTextChangedListener(it) }
             mnemonicTextWatcher?.let { editMnemonic.removeTextChangedListener(it) }
+            usageTextWatcher?.let { editUsage.removeTextChangedListener(it) }
             checkboxSelect.setOnCheckedChangeListener(null)
             checkboxReversed.setOnCheckedChangeListener(null)
             buttonEditCardWithAi.setOnClickListener(null)
@@ -160,6 +163,9 @@ class GeneratedCardsAdapter(
         if (holder.editMnemonic.text.toString() != card.mnemonic) {
             holder.editMnemonic.setText(card.mnemonic)
         }
+        if (holder.editUsage.text.toString() != card.usage) {
+            holder.editUsage.setText(card.usage)
+        }
 
         // Set enabled state based on itemsEnabled
         holder.checkboxSelect.isEnabled = itemsEnabled
@@ -167,6 +173,7 @@ class GeneratedCardsAdapter(
         holder.editWord.isEnabled = itemsEnabled
         holder.editMeaning.isEnabled = itemsEnabled
         holder.editPronunciation.isEnabled = itemsEnabled
+        holder.editUsage.isEnabled = itemsEnabled
         holder.editMnemonic.isEnabled = itemsEnabled
         holder.buttonEditCardWithAi.isEnabled = itemsEnabled
 
@@ -231,6 +238,12 @@ class GeneratedCardsAdapter(
             }
         holder.editMnemonic.addTextChangedListener(holder.mnemonicTextWatcher)
 
+        holder.usageTextWatcher =
+            createFocusRestoringTextWatcher(holder, holder.editUsage) {
+                card.usage = it
+            }
+        holder.editUsage.addTextChangedListener(holder.usageTextWatcher)
+
         // AI Edit Button Listener
         holder.buttonEditCardWithAi.setOnClickListener {
             // Toggle visibility of the AI edit section
@@ -260,7 +273,7 @@ class GeneratedCardsAdapter(
                             card.word = updatedCard.word
                             card.meaning = updatedCard.meaning
                             card.pronunciation = updatedCard.pronunciation
-                            card.mnemonic = updatedCard.mnemonic
+                            card.usage = updatedCard.usage
                             showThemedToast(
                                 holder.itemView.context,
                                 "Card edited successfully!",

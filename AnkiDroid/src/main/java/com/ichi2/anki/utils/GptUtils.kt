@@ -173,7 +173,7 @@ object GptUtils {
             WORD: [$language word or phrase (only $language script)]
             IPA: [IPA transcription of WORD, e.g. tɕʰûa moːŋ]
             MEANING: [$nativeLanguage translation of WORD]
-            USAGE: [keep empty if usage is like in $nativeLanguage. Otherwise, short explanation of the difference in usage]
+            USAGE: [keep EMPTY if usage is like in $nativeLanguage. Only otherwise, short English explanation of the difference in usage]
             CARD 2:
             WORD: ...
             And so on. Make them useful for language learning with accurate translations and pronunciations.
@@ -334,7 +334,7 @@ object GptUtils {
             var currentWord = ""
             var currentMeaning = ""
             var currentPronunciation = ""
-            var currentMnemonic = ""
+            var currentUsage = ""
 
             for (line in lines) {
                 when {
@@ -348,16 +348,16 @@ object GptUtils {
                         currentMeaning = line.substring(8).trim()
                     }
                     line.startsWith("USAGE:", ignoreCase = true) -> {
-                        currentMnemonic = line.substring(6).trim()
+                        currentUsage = line.substring(6).trim()
 
-                        // When we hit mnemonic, we should have all fields for a complete card
+                        // When we hit usage, we should have all fields for a complete card
                         if (currentWord.isNotEmpty() && currentMeaning.isNotEmpty() && currentPronunciation.isNotEmpty()) {
                             cards.add(
                                 GeneratedCard(
                                     word = currentWord,
                                     meaning = currentMeaning,
                                     pronunciation = currentPronunciation,
-                                    mnemonic = currentMnemonic,
+                                    usage = currentUsage,
                                 ),
                             )
 
@@ -398,7 +398,7 @@ object GptUtils {
                         card.meaning = line.substring(8).trim()
                     }
                     line.startsWith("USAGE:", ignoreCase = true) -> {
-                        card.mnemonic = line.substring(6).trim()
+                        card.usage = line.substring(6).trim()
                     }
                 }
             }

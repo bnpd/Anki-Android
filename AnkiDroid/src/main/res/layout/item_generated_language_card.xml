@@ -206,6 +206,41 @@
                 </com.google.android.material.textfield.TextInputLayout>
 
             </TableRow>
+            
+            <!-- Usage row -->
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.3"
+                    android:text="Usage:"
+                    android:textStyle="bold"
+                    android:gravity="start|center_vertical"
+                    android:minHeight="48dp"
+                    android:paddingEnd="8dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.7"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:hint="Example sentence">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_usage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine"
+                        android:maxLines="4"
+                        android:minLines="1" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </TableRow>
 
             <!-- Mnemonic row -->
             <TableRow
