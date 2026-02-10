@@ -271,7 +271,6 @@ object GptUtils {
             The following is a $language language learning flashcard:
             `
             WORD: ${card.word}
-            IPA: ${card.pronunciation}
             MEANING: ${card.meaning}
             `
             
@@ -399,6 +398,9 @@ object GptUtils {
                     }
                     line.startsWith("USAGE:", ignoreCase = true) -> {
                         card.usage = line.substring(6).trim()
+                    }
+                    else -> {
+                        card.mnemonic = line
                     }
                 }
             }
