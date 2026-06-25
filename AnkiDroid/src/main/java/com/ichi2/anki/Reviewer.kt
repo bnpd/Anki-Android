@@ -117,11 +117,14 @@ import com.ichi2.anki.settings.Prefs
 import com.ichi2.anki.snackbar.showSnackbar
 import com.ichi2.anki.ui.internationalization.toSentenceCase
 import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
+import com.ichi2.anki.utils.GptUtils.askGpt
 import com.ichi2.anki.utils.GptUtils.identifyErrorsOnCard
 import com.ichi2.anki.utils.LintResult
+import com.ichi2.anki.utils.PromptAutomationResult
 import com.ichi2.anki.utils.ext.flag
 import com.ichi2.anki.utils.ext.setUserFlagForCards
 import com.ichi2.anki.utils.ext.showDialogFragment
+import com.ichi2.anki.utils.getPromptAutomations
 import com.ichi2.anki.utils.navBarNeedsScrim
 import com.ichi2.anki.utils.remainingTime
 import com.ichi2.themes.Themes
@@ -152,6 +155,7 @@ open class Reviewer :
     ReviewerUi,
     BindingProcessor<ReviewerBinding, ViewerCommand> {
     private var lintResults: MutableMap<NoteId, LintResult> = mutableMapOf()
+    private var promptAutomationResults: MutableMap<NoteId, PromptAutomationResult> = mutableMapOf()
     private var queueState: CurrentQueueState? = null
     private val customSchedulingKey = TimeManager.time.intTimeMS().toString()
     private var hasDrawerSwipeConflicts = false
@@ -214,6 +218,7 @@ open class Reviewer :
     private var stopTimerOnAnswer = false
     private val actionButtons = ActionButtons()
     private lateinit var toolbar: Toolbar
+    private var currentPromptAutomationResultSnackbar: Snackbar? = null
     private var currentLintResultSnackbar: Snackbar? = null
 
     @VisibleForTesting
@@ -1257,7 +1262,84 @@ open class Reviewer :
         Timber.i("current note: ${currentCard?.note}")
 
         queueState?.upcomingCard?.note?.let { lintNote(it) }
+        queueState?.upcomingCard?.note?.let { runPromptAutomations(it) }
         currentCard?.note?.let { showLintResultIfAny(it) }
+    }
+
+    private fun runPromptAutomations(note: Note) {
+        val promptAutomations = getPromptAutomations()
+
+        promptAutomations.forEach { promptAutomation ->
+            // If the automation has already been run on this note, skip it
+            if (note.tags.contains(promptAutomation.promptName + "-prompt-ran") ||
+                promptAutomationResults.containsKey(
+                    note.id,
+                )
+            ) {
+                Timber.i("%s-prompt-ran has already been run on this note, skipping", promptAutomation.promptName)
+                return
+            }
+            if (note.notetype.name != promptAutomation.noteType) {
+                Timber.i(
+                    "%s-prompt-ran is not applicable to this note type, skipping (%s != %s)",
+                    promptAutomation.promptName,
+                    note.notetype.name,
+                    promptAutomation.noteType,
+                )
+                return
+            }
+            // add empty result to avoid re-running
+            promptAutomationResults.put(note.id, PromptAutomationResult(completed = false, promptAutomation = promptAutomation))
+
+            askGpt(
+                promptAutomation.replaceFieldPlaceholders(note),
+                onSuccess = { response ->
+                    promptAutomationResults.put(
+                        note.id,
+                        PromptAutomationResult(completed = true, response = response, promptAutomation = promptAutomation),
+                    )
+
+                    if (currentCard?.note?.id == note.id) {
+                        // If the current card is the one we just ran the automation on, show the result
+                        showPromptAutomationResultIfAny(note)
+                    } else {
+                        Timber.i("prompt-automation %s ran on a different card, saving results for later", promptAutomation.promptName)
+                    }
+                },
+                onError = { error ->
+                    Timber.w(error, "Error running prompt automation %s on note", promptAutomation.promptName)
+                },
+            )
+        }
+    }
+
+    private fun showPromptAutomationResultIfAny(note: Note) {
+        currentPromptAutomationResultSnackbar?.dismiss()
+        val promptAutomationResult = promptAutomationResults[note.id] ?: return // if no automation ran, return
+
+        if (promptAutomationResult.completed) {
+            Timber.i("prompt-automation %s ran on this card", promptAutomationResult.promptAutomation.promptName)
+            currentPromptAutomationResultSnackbar =
+                showSnackbar(
+                    "${promptAutomationResult.promptAutomation.promptName}: ${promptAutomationResult.response}",
+                    Snackbar.LENGTH_INDEFINITE,
+                ) {
+                    setAction("Save to ${promptAutomationResult.promptAutomation.field}") {
+                        lifecycleScope.launch {
+                            note.setItem(
+                                promptAutomationResult.promptAutomation.field,
+                                note.getItem(promptAutomationResult.promptAutomation.field) + "\n" + promptAutomationResult.response,
+                            )
+                            withCol {
+                                @SuppressLint("CheckResult")
+                                updateNote(note, skipUndoEntry = false)
+                            }
+                            promptAutomationResults.remove(note.id) // remove the result so we don't show it again
+                            editCard()
+                        }
+                    }
+                }
+        }
     }
 
     private suspend fun lintNote(note: Note) {
@@ -1296,7 +1378,7 @@ open class Reviewer :
                 }
             },
             onError = { error ->
-                Timber.w(error, "Error identifying Errors on card")
+                Timber.w(error, "Error identifying Errors on note")
             },
         )
     }

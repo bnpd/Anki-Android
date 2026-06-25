@@ -15,16 +15,17 @@
  */
 package com.ichi2.anki.preferences
 
-import android.content.Context
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
-import androidx.core.content.edit
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import com.ichi2.anki.R
+import com.ichi2.anki.utils.PromptAutomation
+import com.ichi2.anki.utils.deletePrompt
+import com.ichi2.anki.utils.getPromptAutomations
+import com.ichi2.anki.utils.savePrompt
 
 class OpenAISettingsFragment : SettingsFragment() {
     override val analyticsScreenNameConstant: String
@@ -86,7 +87,8 @@ class OpenAISettingsFragment : SettingsFragment() {
     private fun showAddPromptDialog(category: PreferenceCategory?) {
         val context = requireContext()
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_gpt_prompt, null)
-        val cardTypeInput = dialogView.findViewById<EditText>(R.id.card_type_input)
+        val nameInput = dialogView.findViewById<EditText>(R.id.name_input)
+        val noteTypeInput = dialogView.findViewById<EditText>(R.id.note_type_input)
         val promptInput = dialogView.findViewById<EditText>(R.id.prompt_input)
         val fieldInput = dialogView.findViewById<EditText>(R.id.field_input)
 
@@ -95,55 +97,37 @@ class OpenAISettingsFragment : SettingsFragment() {
             .setTitle(R.string.add_gpt_prompt_title)
             .setView(dialogView)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                val cardType = cardTypeInput.text.toString()
+                val name = nameInput.text.toString()
+                val cardType = noteTypeInput.text.toString()
                 val prompt = promptInput.text.toString()
                 val field = fieldInput.text.toString()
 
                 if (cardType.isNotBlank() && prompt.isNotBlank() && field.isNotBlank()) {
-                    savePrompt(cardType, prompt, field)
-                    addPromptToCategory(category, cardType, prompt, field)
+                    savePrompt(PromptAutomation(name, cardType, prompt, field))
+                    addPromptToCategory(category, PromptAutomation(name, cardType, prompt, field))
                 }
             }.setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
-    private fun getSharedPreferences(): SharedPreferences = requireContext().getSharedPreferences("openai_settings", Context.MODE_PRIVATE)
-
     private fun loadExistingPrompts(category: PreferenceCategory?) {
-        val prompts = getSharedPreferences().getStringSet("gpt_prompts", emptySet()) ?: emptySet()
-        prompts.forEach { promptConfig ->
-            val parts = promptConfig.split("||")
-            if (parts.size == 3) {
-                val (cardType, prompt, field) = parts
-                addPromptToCategory(category, cardType, prompt, field)
-            }
+        val promptAutomations = getPromptAutomations()
+        promptAutomations.forEach { promptAutomation ->
+            addPromptToCategory(category, promptAutomation)
         }
-    }
-
-    private fun savePrompt(
-        cardType: String,
-        prompt: String,
-        field: String,
-    ) {
-        val sharedPreferences = getSharedPreferences()
-        val prompts = sharedPreferences.getStringSet("gpt_prompts", emptySet())?.toMutableSet() ?: mutableSetOf()
-        prompts.add("$cardType||$prompt||$field")
-        sharedPreferences.edit { putStringSet("gpt_prompts", prompts) }
     }
 
     private fun addPromptToCategory(
         category: PreferenceCategory?,
-        cardType: String,
-        prompt: String,
-        field: String,
+        promptAutomation: PromptAutomation,
     ) {
         val context = requireContext()
         val preference =
             Preference(context).apply {
-                title = context.getString(R.string.gpt_prompt_title, cardType)
-                summary = context.getString(R.string.gpt_prompt_summary, prompt, field)
+                title = context.getString(R.string.gpt_prompt_title, promptAutomation.noteType)
+                summary = context.getString(R.string.gpt_prompt_summary, promptAutomation.prompt, promptAutomation.field)
                 setOnPreferenceClickListener {
-                    showEditOrRemoveDialog(category, this, cardType, prompt, field)
+                    showEditOrRemoveDialog(category, this, promptAutomation)
                     true
                 }
             }
@@ -153,9 +137,7 @@ class OpenAISettingsFragment : SettingsFragment() {
     private fun showEditOrRemoveDialog(
         category: PreferenceCategory?,
         preference: Preference,
-        cardType: String,
-        prompt: String,
-        field: String,
+        promptAutomation: PromptAutomation,
     ) {
         val context = requireContext()
         val options = arrayOf(context.getString(R.string.edit), context.getString(R.string.remove))
@@ -165,8 +147,8 @@ class OpenAISettingsFragment : SettingsFragment() {
             .setTitle(R.string.edit_or_remove_prompt_title)
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> showEditPromptDialog(category, preference, cardType, prompt, field)
-                    1 -> removePrompt(category, preference, cardType, prompt, field)
+                    0 -> showEditPromptDialog(category, preference, promptAutomation)
+                    1 -> removePrompt(category, preference, promptAutomation)
                 }
             }.show()
     }
@@ -174,33 +156,35 @@ class OpenAISettingsFragment : SettingsFragment() {
     private fun showEditPromptDialog(
         category: PreferenceCategory?,
         preference: Preference,
-        oldCardType: String,
-        oldPrompt: String,
-        oldField: String,
+        oldPromptAutomation: PromptAutomation,
     ) {
         val context = requireContext()
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_gpt_prompt, null)
-        val cardTypeInput = dialogView.findViewById<EditText>(R.id.card_type_input)
+        val nameInput = dialogView.findViewById<EditText>(R.id.name_input)
+        val noteTypeInput = dialogView.findViewById<EditText>(R.id.note_type_input)
         val promptInput = dialogView.findViewById<EditText>(R.id.prompt_input)
         val fieldInput = dialogView.findViewById<EditText>(R.id.field_input)
 
-        cardTypeInput.setText(oldCardType)
-        promptInput.setText(oldPrompt)
-        fieldInput.setText(oldField)
+        nameInput.setText(oldPromptAutomation.promptName)
+        noteTypeInput.setText(oldPromptAutomation.noteType)
+        promptInput.setText(oldPromptAutomation.prompt)
+        fieldInput.setText(oldPromptAutomation.field)
 
         AlertDialog
             .Builder(context)
             .setTitle(R.string.edit_gpt_prompt_title)
             .setView(dialogView)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                val newCardType = cardTypeInput.text.toString()
+                val newName = nameInput.text.toString()
+                val newNoteType = noteTypeInput.text.toString()
                 val newPrompt = promptInput.text.toString()
                 val newField = fieldInput.text.toString()
+                val newPromptAutomation = PromptAutomation(newName, newNoteType, newPrompt, newField)
 
-                if (newCardType.isNotBlank() && newPrompt.isNotBlank() && newField.isNotBlank()) {
-                    removePrompt(category, preference, oldCardType, oldPrompt, oldField, false)
-                    savePrompt(newCardType, newPrompt, newField)
-                    addPromptToCategory(category, newCardType, newPrompt, newField)
+                if (newNoteType.isNotBlank() && newPrompt.isNotBlank() && newField.isNotBlank()) {
+                    savePrompt(newPromptAutomation)
+                    removePrompt(category, preference, oldPromptAutomation)
+                    addPromptToCategory(category, newPromptAutomation)
                 }
             }.setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -209,18 +193,9 @@ class OpenAISettingsFragment : SettingsFragment() {
     private fun removePrompt(
         category: PreferenceCategory?,
         preference: Preference,
-        cardType: String,
-        prompt: String,
-        field: String,
-        removeFromUI: Boolean = true,
+        promptAutomation: PromptAutomation,
     ) {
-        val sharedPreferences = getSharedPreferences()
-        val prompts = sharedPreferences.getStringSet("gpt_prompts", emptySet())?.toMutableSet() ?: mutableSetOf()
-        prompts.remove("$cardType||$prompt||$field")
-        sharedPreferences.edit().putStringSet("gpt_prompts", prompts).apply()
-
-        if (removeFromUI) {
-            category?.removePreference(preference)
-        }
+        deletePrompt(promptAutomation)
+        category?.removePreference(preference)
     }
 }
