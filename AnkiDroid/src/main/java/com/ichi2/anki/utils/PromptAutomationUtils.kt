@@ -18,6 +18,8 @@ class PromptAutomation(
         }
         return prompt
     }
+
+    fun tagNameAfterRan(): String = "${this.promptName.replace(" ", "-")}-prompt-ran"
 }
 
 data class PromptAutomationResult(

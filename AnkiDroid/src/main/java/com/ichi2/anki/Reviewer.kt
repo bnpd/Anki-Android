@@ -1272,17 +1272,17 @@ open class Reviewer :
 
         promptAutomations.forEach { promptAutomation ->
             // If the automation has already been run on this note, skip it
-            if (note.tags.contains(promptAutomation.promptName + "-prompt-ran") ||
+            if (note.tags.contains(promptAutomation.tagNameAfterRan()) ||
                 promptAutomationResults.containsKey(
                     note.id,
                 )
             ) {
-                Timber.i("%s-prompt-ran has already been run on this note, skipping", promptAutomation.promptName)
+                Timber.i("%s propmpt automation has already been run on this note, skipping", promptAutomation.promptName)
                 return
             }
             if (note.notetype.name != promptAutomation.noteType) {
                 Timber.i(
-                    "%s-prompt-ran is not applicable to this note type, skipping (%s != %s)",
+                    "%s prompt automation is not applicable to this note type, skipping (%s != %s)",
                     promptAutomation.promptName,
                     note.notetype.name,
                     promptAutomation.noteType,
@@ -1424,8 +1424,13 @@ open class Reviewer :
         }
     }
 
-    private suspend fun tagNoteAsLinted(note: Note) {
-        note.tags.add("identify-errors-ran")
+    private suspend fun addTagsToNote(
+        note: Note,
+        tags: List<String>,
+    ) {
+        tags.map { tag ->
+            note.tags.add(tag)
+        }
         withCol {
             @SuppressLint("CheckResult")
             updateNote(
@@ -1437,10 +1442,21 @@ open class Reviewer :
     }
 
     override suspend fun answerCardInner(rating: Rating) {
-        // before moving on to next note, tag the current note as linted
+        // before moving on to next note, tag the current note as linted & had prompt automations run
+        val tagsToAddToNote = mutableListOf<String>()
+
         val note = currentCard?.note
-        if (note != null && lintResults.containsKey(note.id)) {
-            tagNoteAsLinted(note)
+        if (note != null) {
+            if (lintResults.containsKey(note.id)) {
+                tagsToAddToNote += "identify-errors-ran"
+            }
+            // before moving on to next note, tag the current note as having
+            if (promptAutomationResults.containsKey(note.id)) {
+                tagsToAddToNote += promptAutomationResults[note.id]!!.promptAutomation.tagNameAfterRan()
+            }
+            if (tagsToAddToNote.isNotEmpty()) {
+                addTagsToNote(note, tagsToAddToNote)
+            }
         }
 
         val state = queueState!!
