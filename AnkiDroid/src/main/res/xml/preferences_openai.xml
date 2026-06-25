@@ -46,4 +46,17 @@
         android:summary="@string/pref_openai_card_lint_instructions_summary"
         android:defaultValue="@string/pref_openai_card_lint_instructions_default"
         app:useSimpleSummaryProvider="false"/>
+
+    <PreferenceCategory
+        android:title="@string/pref_gpt_prompts_category"
+        android:key="@string/pref_gpt_prompts_category_key">
+
+        <Preference
+            android:key="@string/pref_add_gpt_prompt"
+            android:title="@string/add_gpt_prompt_title"
+            android:summary="@string/add_gpt_prompt_summary"
+            android:icon="@drawable/ic_add"/>
+
+        <!-- Placeholder for dynamically added GPT prompts -->
+    </PreferenceCategory>
 </PreferenceScreen>
