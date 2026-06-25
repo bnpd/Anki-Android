@@ -1264,6 +1264,7 @@ open class Reviewer :
         queueState?.upcomingCard?.note?.let { lintNote(it) }
         queueState?.upcomingCard?.note?.let { runPromptAutomations(it) }
         currentCard?.note?.let { showLintResultIfAny(it) }
+        currentCard?.note?.let { showPromptAutomationResultIfAny(it) }
     }
 
     private fun runPromptAutomations(note: Note) {
