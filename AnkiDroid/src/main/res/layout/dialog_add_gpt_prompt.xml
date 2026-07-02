@@ -34,4 +34,16 @@
         android:hint="@string/field_hint"
         android:inputType="text" />
 
+    <CheckBox
+        android:id="@+id/run_only_on_leeches_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/run_only_on_leeches" />
+
+    <CheckBox
+        android:id="@+id/run_only_once_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/run_only_once" />
+
 </LinearLayout>

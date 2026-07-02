@@ -16,6 +16,7 @@
 package com.ichi2.anki.preferences
 
 import android.os.Bundle
+import android.widget.CheckBox
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.EditTextPreference
@@ -91,6 +92,8 @@ class OpenAISettingsFragment : SettingsFragment() {
         val noteTypeInput = dialogView.findViewById<EditText>(R.id.note_type_input)
         val promptInput = dialogView.findViewById<EditText>(R.id.prompt_input)
         val fieldInput = dialogView.findViewById<EditText>(R.id.field_input)
+        val runOnlyOnLeechesCheckbox = dialogView.findViewById<CheckBox>(R.id.run_only_on_leeches_checkbox)
+        val runOnlyOnceCheckbox = dialogView.findViewById<CheckBox>(R.id.run_only_once_checkbox)
 
         AlertDialog
             .Builder(context)
@@ -102,9 +105,12 @@ class OpenAISettingsFragment : SettingsFragment() {
                 val prompt = promptInput.text.toString()
                 val field = fieldInput.text.toString()
 
+                val runOnlyOnLeeches = runOnlyOnLeechesCheckbox.isChecked
+                val runOnlyOnce = runOnlyOnceCheckbox.isChecked
+
                 if (cardType.isNotBlank() && prompt.isNotBlank() && field.isNotBlank()) {
-                    savePrompt(PromptAutomation(name, cardType, prompt, field))
-                    addPromptToCategory(category, PromptAutomation(name, cardType, prompt, field))
+                    savePrompt(PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce))
+                    addPromptToCategory(category, PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce))
                 }
             }.setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -164,6 +170,8 @@ class OpenAISettingsFragment : SettingsFragment() {
         val noteTypeInput = dialogView.findViewById<EditText>(R.id.note_type_input)
         val promptInput = dialogView.findViewById<EditText>(R.id.prompt_input)
         val fieldInput = dialogView.findViewById<EditText>(R.id.field_input)
+        val runOnlyOnLeechesCheckbox = dialogView.findViewById<CheckBox>(R.id.run_only_on_leeches_checkbox)
+        val runOnlyOnceCheckbox = dialogView.findViewById<CheckBox>(R.id.run_only_once_checkbox)
 
         nameInput.setText(oldPromptAutomation.promptName)
         noteTypeInput.setText(oldPromptAutomation.noteType)

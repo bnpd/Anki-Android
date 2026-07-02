@@ -11,6 +11,8 @@ class PromptAutomation(
     val noteType: String,
     var prompt: String,
     val field: String,
+    val runOnlyOnLeeches: Boolean = false, // New field
+    val runOnlyOnce: Boolean = false, // New field
 ) {
     fun replaceFieldPlaceholders(note: Note): String {
         note.notetype.fieldsNames.forEach { noteField ->
@@ -20,6 +22,25 @@ class PromptAutomation(
     }
 
     fun tagNameAfterRan(): String = "${this.promptName.replace(" ", "-")}-prompt-ran"
+
+    override fun toString(): String = "$promptName||$noteType||$prompt||$field||$runOnlyOnLeeches||$runOnlyOnce"
+
+    companion object {
+        fun fromString(promptString: String): PromptAutomation {
+            val parts = promptString.split("||")
+            if (parts.size != 6) {
+                throw IllegalArgumentException("Invalid prompt format: $promptString")
+            }
+            return PromptAutomation(
+                parts[0], // promptName
+                parts[1], // noteType
+                parts[2], // prompt
+                parts[3], // field
+                parts[4].toBoolean(), // runOnlyOnLeeches
+                parts[5].toBoolean(), // runOnlyOnce
+            )
+        }
+    }
 }
 
 data class PromptAutomationResult(
@@ -34,24 +55,18 @@ private fun getPromptAutomationsAsStrings(): Set<String> =
 fun getPromptAutomations(): List<PromptAutomation> {
     val prompts = getPromptAutomationsAsStrings()
     return prompts.map { prompt ->
-        val parts = prompt.split("||")
-        if (parts.size == 4) {
-            val (name, cardType, promptText, field) = parts
-            PromptAutomation(name, cardType, promptText, field)
-        } else {
-            throw IllegalArgumentException("Invalid prompt format: $prompt")
-        }
+        PromptAutomation.fromString(prompt)
     }
 }
 
 fun savePrompt(promptAutomation: PromptAutomation) {
     val prompts = getPromptAutomationsAsStrings().toMutableSet()
-    prompts.add("${promptAutomation.promptName}||${promptAutomation.noteType}||${promptAutomation.prompt}||${promptAutomation.field}")
+    prompts.add(promptAutomation.toString())
     sharedPrefs().edit { putStringSet(AnkiDroidApp.instance.getString(R.string.gpt_prompts_pref_key), prompts) }
 }
 
 fun deletePrompt(promptAutomation: PromptAutomation) {
     val prompts = getPromptAutomationsAsStrings().toMutableSet()
-    prompts.remove("${promptAutomation.promptName}||${promptAutomation.noteType}||${promptAutomation.prompt}||${promptAutomation.field}")
+    prompts.remove(promptAutomation.toString())
     sharedPrefs().edit { putStringSet(AnkiDroidApp.instance.getString(R.string.gpt_prompts_pref_key), prompts) }
 }
