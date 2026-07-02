@@ -46,4 +46,18 @@
         android:layout_height="wrap_content"
         android:text="@string/run_only_once" />
 
+    <EditText
+        android:id="@+id/model_input"
+        android:inputType="text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/model_edittext_hint" />
+
+    <EditText
+        android:id="@+id/reasoning_input"
+        android:inputType="text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/reasoning_effort_edittext_hint" />
+
 </LinearLayout>

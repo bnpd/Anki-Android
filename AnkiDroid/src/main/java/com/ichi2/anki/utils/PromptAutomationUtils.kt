@@ -5,14 +5,18 @@ import com.ichi2.anki.AnkiDroidApp
 import com.ichi2.anki.AnkiDroidApp.Companion.sharedPrefs
 import com.ichi2.anki.R
 import com.ichi2.anki.libanki.Note
+import com.openai.models.ChatModel
+import com.openai.models.ReasoningEffort
 
 class PromptAutomation(
     val promptName: String,
     val noteType: String,
     var prompt: String,
     val field: String,
-    val runOnlyOnLeeches: Boolean = false, // New field
-    val runOnlyOnce: Boolean = false, // New field
+    val runOnlyOnLeeches: Boolean = false,
+    val runOnlyOnce: Boolean = false,
+    val model: ChatModel,
+    val reasoningEffort: ReasoningEffort,
 ) {
     fun replaceFieldPlaceholders(note: Note): String {
         note.notetype.fieldsNames.forEach { noteField ->
@@ -23,13 +27,51 @@ class PromptAutomation(
 
     fun tagNameAfterRan(): String = "${this.promptName.replace(" ", "-")}-prompt-ran"
 
-    override fun toString(): String = "$promptName||$noteType||$prompt||$field||$runOnlyOnLeeches||$runOnlyOnce"
+    override fun toString(): String = "$promptName||$noteType||$prompt||$field||$runOnlyOnLeeches||$runOnlyOnce||$model||$reasoningEffort"
+
+    constructor(
+        newName: String,
+        newNoteType: String,
+        newPrompt: String,
+        newField: String,
+        newLeeches: Boolean,
+        newOnce: Boolean,
+        model: String,
+        reasoningEffort: String,
+    ) : this(
+        promptName = newName,
+        noteType = newNoteType,
+        prompt = newPrompt,
+        field = newField,
+        runOnlyOnLeeches = newLeeches,
+        runOnlyOnce = newOnce,
+        model = if (model.isNotEmpty()) ChatModel.of(model) else DEFAULT_MODEL,
+        reasoningEffort =
+            if (reasoningEffort.isNotEmpty()) {
+                ReasoningEffort.of(reasoningEffort)
+            } else {
+                DEFAULT_REASONING_EFFORT
+            },
+    )
 
     companion object {
         fun fromString(promptString: String): PromptAutomation {
             val parts = promptString.split("||")
-            if (parts.size != 6) {
-                throw IllegalArgumentException("Invalid prompt format: $promptString")
+            if (parts.size != 8) {
+                if (parts.size == 4) {
+                    return PromptAutomation(
+                        parts[0], // promptName
+                        parts[1], // noteType
+                        parts[2], // prompt
+                        parts[3], // field
+                        newLeeches = false, // runOnlyOnLeeches
+                        newOnce = false, // runOnlyOnce
+                        model = "",
+                        reasoningEffort = "",
+                    )
+                } else {
+                    throw IllegalArgumentException("Invalid prompt format: $promptString")
+                }
             }
             return PromptAutomation(
                 parts[0], // promptName
@@ -38,10 +80,14 @@ class PromptAutomation(
                 parts[3], // field
                 parts[4].toBoolean(), // runOnlyOnLeeches
                 parts[5].toBoolean(), // runOnlyOnce
+                ChatModel.of(parts[6]), // model
+                ReasoningEffort.of(parts[7]), // reasoningEffort
             )
         }
 
         const val LEECH_THRESHOLD = 3
+        val DEFAULT_MODEL = ChatModel.GPT_5_MINI
+        val DEFAULT_REASONING_EFFORT = ReasoningEffort.LOW
     }
 }
 

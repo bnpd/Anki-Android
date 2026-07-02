@@ -144,6 +144,7 @@ import com.ichi2.utils.show
 import com.ichi2.utils.tintOverflowMenuIcons
 import com.ichi2.utils.title
 import com.ichi2.widget.WidgetStatus.updateInBackground
+import com.openai.models.responses.ResponseCreateParams
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
@@ -1315,6 +1316,9 @@ open class Reviewer :
                 onError = { error ->
                     Timber.w(error, "Error running prompt automation %s on note", promptAutomation.promptName)
                 },
+                model = promptAutomation.model,
+                reasoningEffort = promptAutomation.reasoningEffort,
+                serviceTier = ResponseCreateParams.ServiceTier.FLEX,
             )
         }
     }

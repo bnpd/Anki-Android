@@ -94,6 +94,8 @@ class OpenAISettingsFragment : SettingsFragment() {
         val fieldInput = dialogView.findViewById<EditText>(R.id.field_input)
         val runOnlyOnLeechesCheckbox = dialogView.findViewById<CheckBox>(R.id.run_only_on_leeches_checkbox)
         val runOnlyOnceCheckbox = dialogView.findViewById<CheckBox>(R.id.run_only_once_checkbox)
+        val modelInput = dialogView.findViewById<EditText>(R.id.model_input)
+        val reasoningEffortInput = dialogView.findViewById<EditText>(R.id.reasoning_input)
 
         AlertDialog
             .Builder(context)
@@ -104,13 +106,18 @@ class OpenAISettingsFragment : SettingsFragment() {
                 val cardType = noteTypeInput.text.toString()
                 val prompt = promptInput.text.toString()
                 val field = fieldInput.text.toString()
+                val model = modelInput.text.toString()
+                val reasoningEffort = reasoningEffortInput.text.toString()
 
                 val runOnlyOnLeeches = runOnlyOnLeechesCheckbox.isChecked
                 val runOnlyOnce = runOnlyOnceCheckbox.isChecked
 
                 if (cardType.isNotBlank() && prompt.isNotBlank() && field.isNotBlank()) {
-                    savePrompt(PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce))
-                    addPromptToCategory(category, PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce))
+                    savePrompt(PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce, model, reasoningEffort))
+                    addPromptToCategory(
+                        category,
+                        PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce, model, reasoningEffort),
+                    )
                 }
             }.setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -179,6 +186,8 @@ class OpenAISettingsFragment : SettingsFragment() {
         val fieldInput = dialogView.findViewById<EditText>(R.id.field_input)
         val runOnlyOnLeechesCheckbox = dialogView.findViewById<CheckBox>(R.id.run_only_on_leeches_checkbox)
         val runOnlyOnceCheckbox = dialogView.findViewById<CheckBox>(R.id.run_only_once_checkbox)
+        val modelInput = dialogView.findViewById<EditText>(R.id.model_input)
+        val reasoningEffortInput = dialogView.findViewById<EditText>(R.id.reasoning_input)
 
         nameInput.setText(oldPromptAutomation.promptName)
         noteTypeInput.setText(oldPromptAutomation.noteType)
@@ -186,6 +195,8 @@ class OpenAISettingsFragment : SettingsFragment() {
         fieldInput.setText(oldPromptAutomation.field)
         runOnlyOnLeechesCheckbox.isChecked = oldPromptAutomation.runOnlyOnLeeches
         runOnlyOnceCheckbox.isChecked = oldPromptAutomation.runOnlyOnce
+        modelInput.setText(oldPromptAutomation.model.toString())
+        reasoningEffortInput.setText(oldPromptAutomation.reasoningEffort.toString())
 
         AlertDialog
             .Builder(context)
@@ -198,7 +209,10 @@ class OpenAISettingsFragment : SettingsFragment() {
                 val newField = fieldInput.text.toString()
                 val newLeeches = runOnlyOnLeechesCheckbox.isChecked
                 val newOnce = runOnlyOnceCheckbox.isChecked
-                val newPromptAutomation = PromptAutomation(newName, newNoteType, newPrompt, newField, newLeeches, newOnce)
+                val model = modelInput.text.toString()
+                val reasoningEffort = reasoningEffortInput.text.toString()
+                val newPromptAutomation =
+                    PromptAutomation(newName, newNoteType, newPrompt, newField, newLeeches, newOnce, model, reasoningEffort)
 
                 if (newNoteType.isNotBlank() && newPrompt.isNotBlank() && newField.isNotBlank()) {
                     savePrompt(newPromptAutomation)

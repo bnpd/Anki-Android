@@ -297,6 +297,8 @@
     <string name="openai_settings_pref_key">openai_settings</string>
     <string name="run_only_on_leeches">Run only on leeches</string>
     <string name="run_only_once">Run only once</string>
+    <string name="model_edittext_hint">Override model</string>
+    <string name="reasoning_effort_edittext_hint">Override reasoning effort</string>
 
 
     <!-- Controls -->
