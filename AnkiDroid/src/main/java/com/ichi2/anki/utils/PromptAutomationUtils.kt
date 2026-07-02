@@ -40,6 +40,8 @@ class PromptAutomation(
                 parts[5].toBoolean(), // runOnlyOnce
             )
         }
+
+        const val LEECH_THRESHOLD = 3
     }
 }
 

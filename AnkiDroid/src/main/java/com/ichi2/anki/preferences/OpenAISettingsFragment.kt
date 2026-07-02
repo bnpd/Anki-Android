@@ -130,8 +130,15 @@ class OpenAISettingsFragment : SettingsFragment() {
         val context = requireContext()
         val preference =
             Preference(context).apply {
-                title = context.getString(R.string.gpt_prompt_title, promptAutomation.noteType)
-                summary = context.getString(R.string.gpt_prompt_summary, promptAutomation.prompt, promptAutomation.field)
+                title = context.getString(R.string.gpt_prompt_title, promptAutomation.promptName)
+                summary =
+                    context.getString(
+                        R.string.gpt_prompt_summary,
+                        promptAutomation.noteType,
+                        promptAutomation.field,
+                        promptAutomation.runOnlyOnLeeches.toString(),
+                        promptAutomation.runOnlyOnce.toString(),
+                    )
                 setOnPreferenceClickListener {
                     showEditOrRemoveDialog(category, this, promptAutomation)
                     true
@@ -177,6 +184,8 @@ class OpenAISettingsFragment : SettingsFragment() {
         noteTypeInput.setText(oldPromptAutomation.noteType)
         promptInput.setText(oldPromptAutomation.prompt)
         fieldInput.setText(oldPromptAutomation.field)
+        runOnlyOnLeechesCheckbox.isChecked = oldPromptAutomation.runOnlyOnLeeches
+        runOnlyOnceCheckbox.isChecked = oldPromptAutomation.runOnlyOnce
 
         AlertDialog
             .Builder(context)
@@ -187,7 +196,9 @@ class OpenAISettingsFragment : SettingsFragment() {
                 val newNoteType = noteTypeInput.text.toString()
                 val newPrompt = promptInput.text.toString()
                 val newField = fieldInput.text.toString()
-                val newPromptAutomation = PromptAutomation(newName, newNoteType, newPrompt, newField)
+                val newLeeches = runOnlyOnLeechesCheckbox.isChecked
+                val newOnce = runOnlyOnceCheckbox.isChecked
+                val newPromptAutomation = PromptAutomation(newName, newNoteType, newPrompt, newField, newLeeches, newOnce)
 
                 if (newNoteType.isNotBlank() && newPrompt.isNotBlank() && newField.isNotBlank()) {
                     savePrompt(newPromptAutomation)

@@ -120,6 +120,7 @@ import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.utils.GptUtils.askGpt
 import com.ichi2.anki.utils.GptUtils.identifyErrorsOnCard
 import com.ichi2.anki.utils.LintResult
+import com.ichi2.anki.utils.PromptAutomation.Companion.LEECH_THRESHOLD
 import com.ichi2.anki.utils.PromptAutomationResult
 import com.ichi2.anki.utils.ext.flag
 import com.ichi2.anki.utils.ext.setUserFlagForCards
@@ -1262,20 +1263,24 @@ open class Reviewer :
         Timber.i("current note: ${currentCard?.note}")
 
         queueState?.upcomingCard?.note?.let { lintNote(it) }
-        queueState?.upcomingCard?.note?.let { runPromptAutomations(it) }
+        queueState?.upcomingCard?.let { runPromptAutomations(it) }
         currentCard?.note?.let { showLintResultIfAny(it) }
         currentCard?.note?.let { showPromptAutomationResultIfAny(it) }
     }
 
-    private fun runPromptAutomations(note: Note) {
+    private fun runPromptAutomations(card: Card) {
+        val note = card.note!!
         val promptAutomations = getPromptAutomations()
 
         promptAutomations.forEach { promptAutomation ->
-            // If the automation has already been run on this note, skip it
-            if (note.tags.contains(promptAutomation.tagNameAfterRan()) ||
-                promptAutomationResults.containsKey(
-                    note.id,
-                )
+            // should we skip this automation on this note?
+            if (
+                promptAutomation.runOnlyOnLeeches &&
+                card.lapses > LEECH_THRESHOLD ||
+                promptAutomation.runOnlyOnce &&
+                note.tags.contains(promptAutomation.tagNameAfterRan()) ||
+                // If the automation has already been run on this note and runOnlyOnce
+                promptAutomationResults.containsKey(note.id) // If the automation result is already ready
             ) {
                 Timber.i("%s propmpt automation has already been run on this note, skipping", promptAutomation.promptName)
                 return
@@ -1442,7 +1447,7 @@ open class Reviewer :
     }
 
     override suspend fun answerCardInner(rating: Rating) {
-        // before moving on to next note, tag the current note as linted & had prompt automations run
+        // before moving on to next note, tag the current note as linted
         val tagsToAddToNote = mutableListOf<String>()
 
         val note = currentCard?.note
@@ -1450,7 +1455,7 @@ open class Reviewer :
             if (lintResults.containsKey(note.id)) {
                 tagsToAddToNote += "identify-errors-ran"
             }
-            // before moving on to next note, tag the current note as having
+            // before moving on to next note, tag the current note as having run prompt automations
             if (promptAutomationResults.containsKey(note.id)) {
                 tagsToAddToNote += promptAutomationResults[note.id]!!.promptAutomation.tagNameAfterRan()
             }

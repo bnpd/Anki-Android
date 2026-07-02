@@ -287,7 +287,7 @@
     <string name="prompt_hint">Prompt Text</string>
     <string name="field_hint">Field to Save Response</string>
     <string name="gpt_prompt_title">GPT Prompt: %1$s</string>
-    <string name="gpt_prompt_summary">Prompt: %1$s\nField: %2$s</string>
+    <string name="gpt_prompt_summary">Note Type: %1$s\nField: %2$s\nLeech only: %3$s\nOnce only: %4$s</string>
     <string name="add_gpt_prompt_summary">Runs automatically when reviewing matching card type</string>
     <string name="edit_or_remove_prompt_title">Edit or Remove GPT Prompt</string>
     <string name="edit_gpt_prompt_title">Edit GPT Prompt</string>
