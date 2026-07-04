@@ -113,7 +113,17 @@ class OpenAISettingsFragment : SettingsFragment() {
                 val runOnlyOnce = runOnlyOnceCheckbox.isChecked
 
                 if (cardType.isNotBlank() && prompt.isNotBlank() && field.isNotBlank()) {
-                    savePrompt(PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce, model, reasoningEffort))
+                    try {
+                        savePrompt(PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce, model, reasoningEffort))
+                    } catch (e: IllegalArgumentException) {
+                        AlertDialog
+                            .Builder(context)
+                            .setTitle("Error")
+                            .setMessage(e.message)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
+                        return@setPositiveButton
+                    }
                     addPromptToCategory(
                         category,
                         PromptAutomation(name, cardType, prompt, field, runOnlyOnLeeches, runOnlyOnce, model, reasoningEffort),
@@ -215,9 +225,17 @@ class OpenAISettingsFragment : SettingsFragment() {
                     PromptAutomation(newName, newNoteType, newPrompt, newField, newLeeches, newOnce, model, reasoningEffort)
 
                 if (newNoteType.isNotBlank() && newPrompt.isNotBlank() && newField.isNotBlank()) {
-                    savePrompt(newPromptAutomation)
-                    removePrompt(category, preference, oldPromptAutomation)
-                    addPromptToCategory(category, newPromptAutomation)
+                    if (removePrompt(category, preference, oldPromptAutomation)) {
+                        savePrompt(newPromptAutomation)
+                        addPromptToCategory(category, newPromptAutomation)
+                    } else {
+                        AlertDialog
+                            .Builder(requireContext())
+                            .setTitle("Error")
+                            .setMessage("Failed to update prompt. This should not happen.")
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
+                    }
                 }
             }.setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -227,8 +245,13 @@ class OpenAISettingsFragment : SettingsFragment() {
         category: PreferenceCategory?,
         preference: Preference,
         promptAutomation: PromptAutomation,
-    ) {
-        deletePrompt(promptAutomation)
+    ): Boolean {
+        try {
+            deletePrompt(promptAutomation)
+        } catch (_: IllegalArgumentException) {
+            return false
+        }
         category?.removePreference(preference)
+        return true
     }
 }

@@ -109,12 +109,16 @@ fun getPromptAutomations(): List<PromptAutomation> {
 
 fun savePrompt(promptAutomation: PromptAutomation) {
     val prompts = getPromptAutomationsAsStrings().toMutableSet()
-    prompts.add(promptAutomation.toString())
+    if (!prompts.add(promptAutomation.toString())) {
+        throw IllegalArgumentException("Prompt with name ${promptAutomation.promptName} already exists.")
+    }
     sharedPrefs().edit { putStringSet(AnkiDroidApp.instance.getString(R.string.gpt_prompts_pref_key), prompts) }
 }
 
 fun deletePrompt(promptAutomation: PromptAutomation) {
     val prompts = getPromptAutomationsAsStrings().toMutableSet()
-    prompts.remove(promptAutomation.toString())
+    if (!prompts.removeIf { PromptAutomation.fromString(it).promptName == promptAutomation.promptName }) {
+        throw IllegalArgumentException("Prompt with name ${promptAutomation.promptName} does not exist.")
+    }
     sharedPrefs().edit { putStringSet(AnkiDroidApp.instance.getString(R.string.gpt_prompts_pref_key), prompts) }
 }
