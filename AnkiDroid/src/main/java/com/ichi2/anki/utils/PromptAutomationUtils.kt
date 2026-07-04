@@ -109,9 +109,10 @@ fun getPromptAutomations(): List<PromptAutomation> {
 
 fun savePrompt(promptAutomation: PromptAutomation) {
     val prompts = getPromptAutomationsAsStrings().toMutableSet()
-    if (!prompts.add(promptAutomation.toString())) {
+    if (prompts.any { PromptAutomation.fromString(it).promptName == promptAutomation.promptName }) {
         throw IllegalArgumentException("Prompt with name ${promptAutomation.promptName} already exists.")
     }
+    prompts.add(promptAutomation.toString())
     sharedPrefs().edit { putStringSet(AnkiDroidApp.instance.getString(R.string.gpt_prompts_pref_key), prompts) }
 }
 
