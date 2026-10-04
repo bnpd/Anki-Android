@@ -60,6 +60,7 @@ import androidx.lifecycle.lifecycleScope
 import anki.frontend.SetSchedulingStatesRequest
 import anki.scheduler.CardAnswer.Rating
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
 import com.ichi2.anim.ActivityTransitionAnimation.getInverseTransition
 import com.ichi2.anki.CollectionManager.TR
@@ -157,7 +158,7 @@ open class Reviewer :
     ReviewerUi,
     BindingProcessor<ReviewerBinding, ViewerCommand> {
     private var lintResults: MutableMap<NoteId, LintResult> = mutableMapOf()
-    private var promptAutomationResults: MutableMap<NoteId, PromptAutomationResult> = mutableMapOf()
+    private var promptAutomationResults: MutableMap<NoteId, MutableMap<String, PromptAutomationResult>> = mutableMapOf()
     private var queueState: CurrentQueueState? = null
     private val customSchedulingKey = TimeManager.time.intTimeMS().toString()
     private var hasDrawerSwipeConflicts = false
@@ -1281,10 +1282,10 @@ open class Reviewer :
                 promptAutomation.runOnlyOnce &&
                 note.tags.contains(promptAutomation.tagNameAfterRan()) ||
                 // If the automation has already been run on this note and runOnlyOnce
-                promptAutomationResults.containsKey(note.id) // If the automation result is already ready
+                promptAutomationResults[note.id]?.containsKey(promptAutomation.promptName) == true // If automation ran now
             ) {
                 Timber.i("%s propmpt automation has already been run on this note, skipping", promptAutomation.promptName)
-                return
+                return@forEach
             }
             if (note.notetype.name != promptAutomation.noteType) {
                 Timber.i(
@@ -1293,16 +1294,23 @@ open class Reviewer :
                     note.notetype.name,
                     promptAutomation.noteType,
                 )
-                return
+                return@forEach
             }
             // add empty result to avoid re-running
-            promptAutomationResults.put(note.id, PromptAutomationResult(completed = false, promptAutomation = promptAutomation))
+            if (!promptAutomationResults.containsKey(note.id)) {
+                promptAutomationResults.put(note.id, mutableMapOf())
+            }
+            promptAutomationResults[note.id]?.put(
+                promptAutomation.promptName,
+                PromptAutomationResult(completed = false, promptAutomation = promptAutomation),
+            )
+            Timber.i("NOW Running prompt automation %s", promptAutomation.promptName)
 
             askGpt(
                 promptAutomation.replaceFieldPlaceholders(note),
                 onSuccess = { response ->
-                    promptAutomationResults.put(
-                        note.id,
+                    promptAutomationResults[note.id]?.put(
+                        promptAutomation.promptName,
                         PromptAutomationResult(completed = true, response = response, promptAutomation = promptAutomation),
                     )
 
@@ -1325,30 +1333,51 @@ open class Reviewer :
 
     private fun showPromptAutomationResultIfAny(note: Note) {
         currentPromptAutomationResultSnackbar?.dismiss()
-        val promptAutomationResult = promptAutomationResults[note.id] ?: return // if no automation ran, return
+        promptAutomationResults[note.id]?.keys?.forEach { key ->
+            val promptAutomationResult = promptAutomationResults[note.id]?.get(key)
 
-        if (promptAutomationResult.completed) {
-            Timber.i("prompt-automation %s ran on this card", promptAutomationResult.promptAutomation.promptName)
-            currentPromptAutomationResultSnackbar =
-                showSnackbar(
-                    "${promptAutomationResult.promptAutomation.promptName}: ${promptAutomationResult.response}",
-                    Snackbar.LENGTH_INDEFINITE,
-                ) {
-                    setAction("Save to ${promptAutomationResult.promptAutomation.field}") {
-                        lifecycleScope.launch {
-                            note.setItem(
-                                promptAutomationResult.promptAutomation.field,
-                                note.getItem(promptAutomationResult.promptAutomation.field) + "\n" + promptAutomationResult.response,
-                            )
-                            withCol {
-                                @SuppressLint("CheckResult")
-                                updateNote(note, skipUndoEntry = false)
+            if (promptAutomationResult?.completed == true) {
+                currentPromptAutomationResultSnackbar?.dismiss()
+                Timber.i("prompt-automation %s ran on this card", promptAutomationResult.promptAutomation.promptName)
+                currentPromptAutomationResultSnackbar =
+                    showSnackbar(
+                        "${promptAutomationResult.promptAutomation.promptName}: ${promptAutomationResult.response}",
+                        Snackbar.LENGTH_INDEFINITE,
+                    ) {
+                        setAction("Save to ${promptAutomationResult.promptAutomation.field}") {
+                            lifecycleScope.launch {
+                                note.setItem(
+                                    promptAutomationResult.promptAutomation.field,
+                                    note.getItem(promptAutomationResult.promptAutomation.field) + "\n" + promptAutomationResult.response,
+                                )
+                                withCol {
+                                    @SuppressLint("CheckResult")
+                                    updateNote(note, skipUndoEntry = false)
+                                }
+                                promptAutomationResults[note.id]?.remove(key) // remove the result so we don't show it again
+                                editCard()
                             }
-                            promptAutomationResults.remove(note.id) // remove the result so we don't show it again
-                            editCard()
                         }
+                        addCallback(
+                            object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
+                                override fun onDismissed(
+                                    transientBottomBar: Snackbar?,
+                                    event: Int,
+                                ) {
+                                    if (event == Snackbar.Callback.DISMISS_EVENT_SWIPE) {
+                                        // show other results if any
+                                        lifecycleScope.launch {
+                                            promptAutomationResults[note.id]?.remove(key) // remove this result so others can be shown
+                                            currentCard?.note?.let { showLintResultIfAny(it) }
+                                            currentCard?.note?.let { showPromptAutomationResultIfAny(it) }
+                                        }
+                                    }
+                                    super.onDismissed(transientBottomBar, event)
+                                }
+                            },
+                        )
                     }
-                }
+            }
         }
     }
 
@@ -1428,6 +1457,23 @@ open class Reviewer :
                                 editCard()
                             }
                         }
+                        addCallback(
+                            object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
+                                override fun onDismissed(
+                                    transientBottomBar: Snackbar?,
+                                    event: Int,
+                                ) {
+                                    if (event == Snackbar.Callback.DISMISS_EVENT_SWIPE) {
+                                        // show other results if any
+                                        lifecycleScope.launch {
+                                            lintResults.remove(note.id) // remove this result so other results can be shown
+                                            currentCard?.note?.let { showPromptAutomationResultIfAny(it) }
+                                        }
+                                    }
+                                    super.onDismissed(transientBottomBar, event)
+                                }
+                            },
+                        )
                     }
             }
         }
@@ -1460,8 +1506,12 @@ open class Reviewer :
                 tagsToAddToNote += "identify-errors-ran"
             }
             // before moving on to next note, tag the current note as having run prompt automations
-            if (promptAutomationResults.containsKey(note.id)) {
-                tagsToAddToNote += promptAutomationResults[note.id]!!.promptAutomation.tagNameAfterRan()
+            promptAutomationResults.keys.forEach { key ->
+                promptAutomationResults[key]?.values?.forEach { result ->
+                    if (result.completed) {
+                        tagsToAddToNote += result.promptAutomation.tagNameAfterRan()
+                    }
+                }
             }
             if (tagsToAddToNote.isNotEmpty()) {
                 addTagsToNote(note, tagsToAddToNote)

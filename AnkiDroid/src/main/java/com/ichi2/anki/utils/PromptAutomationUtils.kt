@@ -86,7 +86,7 @@ class PromptAutomation(
         }
 
         const val LEECH_THRESHOLD = 3
-        val DEFAULT_MODEL = ChatModel.GPT_5_MINI
+        val DEFAULT_MODEL = ChatModel.GPT_6_1_SOL
         val DEFAULT_REASONING_EFFORT = ReasoningEffort.LOW
     }
 }

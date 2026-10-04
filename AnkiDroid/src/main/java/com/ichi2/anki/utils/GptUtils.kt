@@ -34,7 +34,7 @@ object GptUtils {
         prompt: String,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
-        model: ChatModel = ChatModel.GPT_5_MINI,
+        model: ChatModel = ChatModel.GPT_6_LUNA,
         reasoningEffort: ReasoningEffort = ReasoningEffort.MINIMAL,
         serviceTier: ResponseCreateParams.ServiceTier = ResponseCreateParams.ServiceTier.DEFAULT,
     ) {
@@ -141,7 +141,7 @@ object GptUtils {
             prompt = prompt,
             onSuccess = { wordsString -> onSuccess(wordsString.lines().filter { it.isNotBlank() && !knownWordsString.contains(it) }) },
             onError = onError,
-            model = ChatModel.GPT_5_MINI,
+            model = ChatModel.GPT_6_1_SOL,
             reasoningEffort = ReasoningEffort.LOW,
             serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
         )
@@ -171,7 +171,11 @@ object GptUtils {
             Respond with each flashcard in the following format: 
             CARD 1:
             WORD: [$language word or phrase (only $language script)]
-            IPA: [IPA transcription of WORD, e.g. tɕʰûa moːŋ]
+            IPA: [${if (language == "Chinese") {
+                "Even though the field needs to be called IPA, the content you should provide is the Pinyin."
+            } else {
+                "IPA transcription of WORD, e.g. tɕʰûa moːŋ"
+            }}]
             MEANING: [$nativeLanguage translation of WORD]
             USAGE: [keep EMPTY if usage is like in $nativeLanguage. Only otherwise, short English explanation of the difference in usage]
             CARD 2:
@@ -186,10 +190,10 @@ object GptUtils {
                 parseLanguageCardsResponse(response, onSuccess, onError)
             },
             onError = onError,
-            model = ChatModel.GPT_5_MINI,
+            model = ChatModel.GPT_6_LUNA,
             reasoningEffort = ReasoningEffort.LOW,
             // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
-            serviceTier = ResponseCreateParams.ServiceTier.DEFAULT,
+            serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
         )
     }
 
@@ -242,7 +246,7 @@ object GptUtils {
                 parseLanguageCardsResponse(response, { words -> onSuccess(words[0]) }, onError)
             },
             onError = onError,
-            model = ChatModel.GPT_5,
+            model = ChatModel.GPT_6_1_SOL,
             reasoningEffort = ReasoningEffort.LOW,
             // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
             serviceTier = ResponseCreateParams.ServiceTier.PRIORITY,
@@ -314,7 +318,7 @@ object GptUtils {
                 }
             },
             onError = onError,
-            model = ChatModel.GPT_5_MINI,
+            model = ChatModel.GPT_6_LUNA,
             reasoningEffort = ReasoningEffort.LOW,
             // for now use LOW, even though kinda expensive, but seems to be more accurate than MINIMAL
             serviceTier = ResponseCreateParams.ServiceTier.FLEX,
