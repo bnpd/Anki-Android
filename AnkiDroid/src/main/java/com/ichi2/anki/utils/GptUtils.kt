@@ -35,7 +35,7 @@ object GptUtils {
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
         model: ChatModel = ChatModel.GPT_6_LUNA,
-        reasoningEffort: ReasoningEffort = ReasoningEffort.MINIMAL,
+        reasoningEffort: ReasoningEffort = ReasoningEffort.LOW,
         serviceTier: ResponseCreateParams.ServiceTier = ResponseCreateParams.ServiceTier.DEFAULT,
     ) {
         CoroutineScope(Dispatchers.Main).launch {
