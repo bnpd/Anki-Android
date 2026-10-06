@@ -1377,7 +1377,7 @@ open class Reviewer :
         promptAutomationResults[note.id]?.keys?.forEach { key ->
             val promptAutomationResult = promptAutomationResults[note.id]?.get(key)
 
-            if (promptAutomationResult?.completed == true) {
+            if (promptAutomationResult?.completed == true && promptAutomationResult.response != null) {
                 currentPromptAutomationResultSnackbar?.dismiss()
                 Timber.i("prompt-automation %s ran on this card", promptAutomationResult.promptAutomation.promptName)
                 currentPromptAutomationResultSnackbar =
@@ -1387,9 +1387,14 @@ open class Reviewer :
                     ) {
                         setAction("Save to ${promptAutomationResult.promptAutomation.field}") {
                             lifecycleScope.launch {
+                                val currentContents = note.getItem(promptAutomationResult.promptAutomation.field)
                                 note.setItem(
                                     promptAutomationResult.promptAutomation.field,
-                                    note.getItem(promptAutomationResult.promptAutomation.field) + "\n" + promptAutomationResult.response,
+                                    if (currentContents.trim().isNotEmpty()) {
+                                        currentContents + "\n" + promptAutomationResult.response
+                                    } else {
+                                        promptAutomationResult.response
+                                    },
                                 )
                                 withCol {
                                     @SuppressLint("CheckResult")
