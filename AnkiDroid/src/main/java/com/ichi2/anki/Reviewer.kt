@@ -121,6 +121,7 @@ import com.ichi2.anki.ui.windows.reviewer.ReviewerFragment
 import com.ichi2.anki.utils.GptUtils.askGpt
 import com.ichi2.anki.utils.GptUtils.identifyErrorsOnCard
 import com.ichi2.anki.utils.LintResult
+import com.ichi2.anki.utils.PromptAutomation
 import com.ichi2.anki.utils.PromptAutomation.Companion.LEECH_THRESHOLD
 import com.ichi2.anki.utils.PromptAutomationResult
 import com.ichi2.anki.utils.ext.flag
@@ -265,6 +266,20 @@ open class Reviewer :
         }
         startLoadingCollection()
         registerOnForgetHandler { listOf(currentCardId!!) }
+
+        // Add a toggle button to the toolbar
+        var muteButton: ImageView? = null
+        muteButton =
+            ImageView(this).apply {
+                setImageResource(R.drawable.ic_mute)
+                setOnClickListener {
+                    launchCatchingTask {
+                        cardMediaPlayer.setEnabled(!cardMediaPlayer.isEnabled)
+                    }
+                    muteButton?.setImageResource(if (cardMediaPlayer.isEnabled) R.drawable.ic_mute else R.drawable.ic_unmute)
+                }
+            }
+        toolbar.addView(muteButton)
     }
 
     override fun onPause() {
@@ -1275,27 +1290,7 @@ open class Reviewer :
         val promptAutomations = getPromptAutomations()
 
         promptAutomations.forEach { promptAutomation ->
-            // should we skip this automation on this note?
-            if (
-                promptAutomation.runOnlyOnLeeches &&
-                card.lapses > LEECH_THRESHOLD ||
-                promptAutomation.runOnlyOnce &&
-                note.tags.contains(promptAutomation.tagNameAfterRan()) ||
-                // If the automation has already been run on this note and runOnlyOnce
-                promptAutomationResults[note.id]?.containsKey(promptAutomation.promptName) == true // If automation ran now
-            ) {
-                Timber.i("%s propmpt automation has already been run on this note, skipping", promptAutomation.promptName)
-                return@forEach
-            }
-            if (note.notetype.name != promptAutomation.noteType) {
-                Timber.i(
-                    "%s prompt automation is not applicable to this note type, skipping (%s != %s)",
-                    promptAutomation.promptName,
-                    note.notetype.name,
-                    promptAutomation.noteType,
-                )
-                return@forEach
-            }
+            if (shouldSkipPromptAutomation(promptAutomation, card)) return@forEach
             // add empty result to avoid re-running
             if (!promptAutomationResults.containsKey(note.id)) {
                 promptAutomationResults.put(note.id, mutableMapOf())
@@ -1329,6 +1324,52 @@ open class Reviewer :
                 serviceTier = ResponseCreateParams.ServiceTier.FLEX,
             )
         }
+    }
+
+    fun shouldSkipPromptAutomation(
+        promptAutomation: PromptAutomation,
+        card: Card,
+    ): Boolean {
+        if (
+            promptAutomation.runOnlyOnLeeches &&
+            card.lapses > LEECH_THRESHOLD
+        ) {
+            Timber.i(
+                "%s propmpt automation is not applicable because card is no leech",
+                promptAutomation.promptName,
+            )
+            return true
+        }
+        val note = card.note!!
+        if (
+            promptAutomation.runOnlyOnce &&
+            note.tags.contains(promptAutomation.tagNameAfterRan())
+        ) {
+            Timber.i(
+                "%s propmpt automation has already been run on this note, skipping",
+                promptAutomation.promptName,
+            )
+            return true
+        }
+        if (
+            promptAutomationResults[note.id]?.containsKey(promptAutomation.promptName) == true
+        ) {
+            Timber.i(
+                "%s propmpt automation skipped to avoid double run",
+                promptAutomation.promptName,
+            )
+            return true
+        }
+        if (note.notetype.name != promptAutomation.noteType) {
+            Timber.i(
+                "%s prompt automation is not applicable to this note type, skipping (%s != %s)",
+                promptAutomation.promptName,
+                note.notetype.name,
+                promptAutomation.noteType,
+            )
+            return true
+        }
+        return false
     }
 
     private fun showPromptAutomationResultIfAny(note: Note) {
